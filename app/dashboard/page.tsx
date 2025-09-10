@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Upload, Camera, Trophy, LogOut } from "lucide-react";
+import { Upload, Camera, LogOut } from "lucide-react";
 import { createWorker } from "tesseract.js";
 import Image from "next/image";
 
@@ -124,7 +124,6 @@ export default function Dashboard() {
           <Card>
             <CardHeader className="pb-3 md:pb-6">
               <CardTitle className="flex items-center gap-2 font-heading text-lg md:text-xl font-normal">
-                <Trophy className="size-4 md:size-5" />
                 YOUR POINTS
               </CardTitle>
               <CardDescription className="text-sm">
@@ -219,7 +218,6 @@ export default function Dashboard() {
             className="text-base md:text-lg px-6 md:px-8 py-4 md:py-6 w-full sm:w-auto"
             onClick={() => router.push("/redeem")}
           >
-            <Trophy className="size-5 md:size-6 mr-2 md:mr-3" />
             REDEEM POINTS
           </Button>
         </div>

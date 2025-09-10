@@ -11,7 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { ArrowLeft, Trophy, Gift, Lock } from "lucide-react";
+import { ArrowLeft, Gift, Lock } from "lucide-react";
 import Image from "next/image";
 
 // Mock rewards data - in a real app this would come from an API
@@ -119,14 +119,13 @@ export default function RedeemPage() {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6 md:py-8">
         <div className="text-center mb-6 md:mb-8">
-          <Trophy className="size-12 md:size-16 mx-auto mb-4 text-primary" />
           <h2 className="text-2xl md:text-3xl mb-2 font-heading">
             REDEEM YOUR POINTS
           </h2>
           <p className="text-muted-foreground text-sm md:text-base">
             Choose from our selection of rewards and redeem your earned points
           </p>
-          <div className="mt-4 p-3 bg-primary/10 rounded-lg inline-block">
+          <div className="mt-4 p-3 bg-white border border-black inline-block">
             <p className="text-sm font-medium">
               Your Points:{" "}
               <span className="text-primary font-bold text-lg">
@@ -146,7 +145,7 @@ export default function RedeemPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
               {rewards.map((reward) => {
                 const canAfford = userPoints >= reward.points;
                 const isSelected = selectedReward === reward.id;
@@ -198,7 +197,6 @@ export default function RedeemPage() {
 
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-1">
-                            <Trophy className="size-4 text-primary" />
                             <span className="font-bold text-primary">
                               {reward.points} points
                             </span>
