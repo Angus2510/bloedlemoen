@@ -89,7 +89,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b bg-card">
+      <header className="bg-card">
         <div className="container mx-auto px-4 py-3 md:py-4">
           <div className="flex items-center justify-end">
             <div className="flex items-center gap-2 md:gap-4">
@@ -107,15 +107,15 @@ export default function Dashboard() {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-2 md:py-3">
         {/* Logo */}
-        <div className="flex justify-center mb-6 md:mb-8">
+        <div className="flex justify-center mb-2 md:mb-3">
           <Image
-            src="/Landing-Page-Logo.png"
+            src="/Bloedlemoen-Gin-Logo.jpg"
             alt="Bloedlemoen Logo"
-            width={160}
-            height={80}
-            className="object-contain md:w-[200px] md:h-[100px]"
+            width={300}
+            height={150}
+            className="object-contain md:w-[400px] md:h-[200px]"
           />
         </div>
 
