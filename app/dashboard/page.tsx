@@ -211,15 +211,26 @@ export default function Dashboard() {
           </Card>
         </div>
 
-        {/* Redeem Points Button */}
+        {/* Action Buttons */}
         <div className="flex justify-center mt-6 md:mt-8">
-          <Button
-            size="lg"
-            className="text-base md:text-lg px-6 md:px-8 py-4 md:py-6 w-full sm:w-auto"
-            onClick={() => router.push("/redeem")}
-          >
-            REDEEM POINTS
-          </Button>
+          <div className="flex items-center gap-4 flex-wrap justify-center">
+            <Button
+              size="lg"
+              className="text-base md:text-lg px-6 md:px-8 py-4 md:py-6 w-full sm:w-auto min-w-[160px] h-[60px]"
+              onClick={() => router.push("/redeem")}
+            >
+              REDEEM POINTS
+            </Button>
+            <button
+              onClick={() => {
+                // Add your shop URL here or navigate to shop page
+                window.open("https://your-shop-url.com", "_blank");
+              }}
+              className="bg-white text-black border border-black font-heading text-base md:text-lg font-medium hover:bg-gray-50 transition-colors px-6 md:px-8 py-4 md:py-6 w-full sm:w-auto min-w-[160px] h-[60px] flex items-center justify-center cursor-pointer"
+            >
+              SHOP NOW
+            </button>
+          </div>
         </div>
 
         {/* Recent Activity */}

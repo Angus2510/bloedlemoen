@@ -125,13 +125,21 @@ export default function RedeemPage() {
           <p className="text-muted-foreground text-sm md:text-base">
             Choose from our selection of rewards and redeem your earned points
           </p>
-          <div className="mt-4 p-3 bg-white border border-black inline-block">
-            <p className="text-sm font-medium">
-              Your Points:{" "}
-              <span className="text-primary font-bold text-lg">
-                {userPoints}
-              </span>
-            </p>
+          <div className="mt-4 flex items-center justify-center gap-4 flex-wrap">
+            <div className="p-3 bg-white border border-black min-w-[160px] h-[60px] flex items-center justify-center">
+              <p className="text-sm font-medium text-center">
+                Your Points:{" "}
+                <span className="text-primary font-bold text-lg">
+                  {userPoints}
+                </span>
+              </p>
+            </div>
+            <button
+              onClick={() => router.push("/dashboard")}
+              className="p-3 bg-black text-white border border-black font-heading text-sm font-medium hover:bg-gray-800 transition-colors min-w-[160px] h-[60px] flex items-center justify-center cursor-pointer"
+            >
+              EARN MORE POINTS
+            </button>
           </div>
         </div>
 
