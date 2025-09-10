@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Upload, Camera, Trophy, LogOut } from "lucide-react";
 import { createWorker } from "tesseract.js";
+import Image from "next/image";
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
@@ -89,21 +90,16 @@ export default function Dashboard() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="bg-primary text-primary-foreground flex size-8 items-center justify-center rounded-md">
-                <Trophy className="size-4" />
-              </div>
-              <h1 className="text-xl font-bold">Bloedlemoen Campaign</h1>
-            </div>
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-muted-foreground">
+        <div className="container mx-auto px-4 py-3 md:py-4">
+          <div className="flex items-center justify-end">
+            <div className="flex items-center gap-2 md:gap-4">
+              <span className="text-xs md:text-sm text-muted-foreground truncate">
                 Welcome, {session?.user?.name || session?.user?.email}
               </span>
               <Button variant="outline" size="sm" onClick={handleLogout}>
-                <LogOut className="size-4 mr-2" />
-                Logout
+                <LogOut className="size-4 mr-1 md:mr-2" />
+                <span className="hidden sm:inline">LOGOUT</span>
+                <span className="sm:hidden">OUT</span>
               </Button>
             </div>
           </div>
@@ -112,27 +108,40 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        <div className="grid gap-6 md:grid-cols-2">
+        {/* Logo */}
+        <div className="flex justify-center mb-6 md:mb-8">
+          <Image
+            src="/Landing-Page-Logo.png"
+            alt="Bloedlemoen Logo"
+            width={160}
+            height={80}
+            className="object-contain md:w-[200px] md:h-[100px]"
+          />
+        </div>
+
+        <div className="grid gap-4 md:gap-6 lg:grid-cols-2">
           {/* Points Card */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Trophy className="size-5" />
-                Your Points
+            <CardHeader className="pb-3 md:pb-6">
+              <CardTitle className="flex items-center gap-2 font-heading text-lg md:text-xl font-normal">
+                <Trophy className="size-4 md:size-5" />
+                YOUR POINTS
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-sm">
                 Accumulate points by uploading valid receipts
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-center">
-                <div className="text-4xl font-bold text-primary mb-2">
+                <div className="text-3xl md:text-4xl font-bold text-primary mb-2">
                   {points}
                 </div>
-                <p className="text-muted-foreground">Total Points Earned</p>
+                <p className="text-muted-foreground text-sm md:text-base">
+                  Total Points Earned
+                </p>
               </div>
-              <div className="mt-6 space-y-2">
-                <div className="flex justify-between text-sm">
+              <div className="mt-4 md:mt-6 space-y-2">
+                <div className="flex justify-between text-xs md:text-sm">
                   <span>Progress to next reward</span>
                   <span>{points}/200</span>
                 </div>
@@ -148,19 +157,21 @@ export default function Dashboard() {
 
           {/* Upload Card */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Camera className="size-5" />
-                Upload Receipt
+            <CardHeader className="pb-3 md:pb-6">
+              <CardTitle className="flex items-center gap-2 font-heading text-lg md:text-xl font-normal">
+                <Camera className="size-4 md:size-5" />
+                UPLOAD RECEIPT
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-sm">
                 Upload a clear image of your receipt to earn points
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3 md:space-y-4">
               <div className="grid w-full items-center gap-1.5">
-                <Label htmlFor="receipt">Receipt Image</Label>
-                <div className="flex items-center gap-2">
+                <Label htmlFor="receipt" className="text-sm">
+                  Receipt Image
+                </Label>
+                <div className="flex flex-col sm:flex-row items-center gap-2">
                   <Input
                     id="receipt"
                     type="file"
@@ -168,21 +179,22 @@ export default function Dashboard() {
                     ref={fileInputRef}
                     onChange={handleImageUpload}
                     disabled={uploading}
-                    className="cursor-pointer"
+                    className="cursor-pointer text-sm"
                   />
                   <Button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploading}
                     size="sm"
+                    className="w-full sm:w-auto"
                   >
                     <Upload className="size-4 mr-2" />
-                    Browse
+                    BROWSE
                   </Button>
                 </div>
               </div>
 
               {uploading && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
                   Processing image with OCR...
                 </div>
@@ -190,8 +202,8 @@ export default function Dashboard() {
 
               {ocrResult && (
                 <div className="space-y-2">
-                  <Label>OCR Result:</Label>
-                  <div className="bg-muted p-3 rounded-md text-sm max-h-32 overflow-y-auto">
+                  <Label className="text-sm">OCR Result:</Label>
+                  <div className="bg-muted p-3 rounded-md text-xs md:text-sm max-h-32 overflow-y-auto">
                     {ocrResult}
                   </div>
                 </div>
@@ -200,31 +212,55 @@ export default function Dashboard() {
           </Card>
         </div>
 
+        {/* Redeem Points Button */}
+        <div className="flex justify-center mt-6 md:mt-8">
+          <Button
+            size="lg"
+            className="text-base md:text-lg px-6 md:px-8 py-4 md:py-6 w-full sm:w-auto"
+            onClick={() => router.push("/redeem")}
+          >
+            <Trophy className="size-5 md:size-6 mr-2 md:mr-3" />
+            REDEEM POINTS
+          </Button>
+        </div>
+
         {/* Recent Activity */}
         <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>Your latest point earnings</CardDescription>
+          <CardHeader className="pb-3 md:pb-6">
+            <CardTitle className="font-heading text-lg md:text-xl font-normal">
+              RECENT ACTIVITY
+            </CardTitle>
+            <CardDescription className="text-sm">
+              Your latest point earnings
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                 <div>
-                  <p className="font-medium">Receipt uploaded</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="font-medium text-sm md:text-base">
+                    Receipt uploaded
+                  </p>
+                  <p className="text-xs md:text-sm text-muted-foreground">
                     Today, 2:30 PM
                   </p>
                 </div>
-                <div className="text-green-600 font-medium">+50 points</div>
+                <div className="text-green-600 font-medium text-sm md:text-base">
+                  +50 points
+                </div>
               </div>
               <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                 <div>
-                  <p className="font-medium">Welcome bonus</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="font-medium text-sm md:text-base">
+                    Welcome bonus
+                  </p>
+                  <p className="text-xs md:text-sm text-muted-foreground">
                     Yesterday, 10:15 AM
                   </p>
                 </div>
-                <div className="text-green-600 font-medium">+100 points</div>
+                <div className="text-green-600 font-medium text-sm md:text-base">
+                  +100 points
+                </div>
               </div>
             </div>
           </CardContent>

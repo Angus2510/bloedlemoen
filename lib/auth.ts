@@ -34,27 +34,53 @@ export const authOptions: NextAuthOptions = {
     FacebookProvider({
       clientId: process.env.FACEBOOK_CLIENT_ID || "",
       clientSecret: process.env.FACEBOOK_CLIENT_SECRET || "",
+      authorization: {
+        params: {
+          scope: "email public_profile",
+        },
+      },
     }),
     AppleProvider({
       clientId: process.env.APPLE_ID || "",
       clientSecret: process.env.APPLE_SECRET || "",
+      authorization: {
+        params: {
+          scope: "name email",
+          response_mode: "form_post",
+        },
+      },
     }),
   ],
   pages: {
     signIn: "/login",
   },
   callbacks: {
+    async signIn() {
+      // Allow sign in for all providers
+      return true;
+    },
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.sub || "";
+        session.user.name = token.name as string;
+        session.user.email = token.email as string;
+        session.user.image = token.picture as string;
         // Initialize user points (in a real app, this would come from database)
         session.user.points = 0;
       }
       return session;
     },
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
         token.sub = user.id;
+        token.name = user.name;
+        token.email = user.email;
+        token.picture = user.image;
+
+        // Store provider info
+        if (account) {
+          token.provider = account.provider;
+        }
       }
       return token;
     },
