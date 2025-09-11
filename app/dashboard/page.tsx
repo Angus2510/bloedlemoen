@@ -59,20 +59,50 @@ export default function Dashboard() {
 
       setOcrResult(text);
 
-      // Mock point calculation based on OCR result
-      if (
-        text.toLowerCase().includes("bloedlemoen") ||
-        text.toLowerCase().includes("receipt")
-      ) {
-        const newPoints = points + 50;
+      // Enhanced receipt validation with specific search criteria
+      const receiptInfo = analyzeReceipt(text);
+
+      if (receiptInfo.isValid) {
+        const pointsEarned = calculatePoints(receiptInfo);
+        const newPoints = points + pointsEarned;
         setPoints(newPoints);
-        alert(
-          `Receipt verified! You earned 50 points. Total: ${newPoints} points`
-        );
+
+        let message = `🎉 Bloedlemoen Gin Purchase Verified!\n\n`;
+        message += `Points Earned: ${pointsEarned}\n`;
+        message += `Total Points: ${newPoints}\n\n`;
+
+        message += `📍 Store: ${
+          receiptInfo.storeName || "Store not identified"
+        }\n`;
+        message += `🍾 Total Bottles: ${receiptInfo.totalBottles}\n\n`;
+
+        message += `Products Found:\n`;
+        receiptInfo.bloedlemoenProducts.forEach((product, index) => {
+          message += `${index + 1}. ${product.name} (Qty: ${
+            product.quantity
+          })\n`;
+        });
+
+        if (receiptInfo.total)
+          message += `\n💰 Receipt Total: R${receiptInfo.total}`;
+        if (receiptInfo.date) message += `\n📅 Date: ${receiptInfo.date}`;
+
+        alert(message);
       } else {
-        alert(
-          "Could not verify this receipt. Please try again with a clear image of a valid receipt."
-        );
+        let errorMessage = "❌ Could not verify Bloedlemoen Gin purchase.\n\n";
+        errorMessage += "Please ensure your receipt shows:\n";
+        errorMessage += "✓ 'Bloedlemoen Gin' product name\n";
+        errorMessage += "✓ Quantity/number of bottles\n";
+        errorMessage += "✓ Clear store name\n\n";
+
+        if (receiptInfo.bloedlemoenProducts.length === 0) {
+          errorMessage +=
+            "No Bloedlemoen Gin products detected in this receipt.";
+        } else {
+          errorMessage += `Found ${receiptInfo.bloedlemoenProducts.length} potential product(s) but couldn't verify them.`;
+        }
+
+        alert(errorMessage);
       }
     } catch (error) {
       console.error("OCR Error:", error);
@@ -80,6 +110,199 @@ export default function Dashboard() {
     } finally {
       setUploading(false);
     }
+  };
+
+  // Enhanced receipt analysis function
+  const analyzeReceipt = (text: string) => {
+    const lowerText = text.toLowerCase();
+    const lines = text
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0);
+
+    const receiptInfo = {
+      isValid: false,
+      storeName: null as string | null,
+      bloedlemoenProducts: [] as {
+        name: string;
+        quantity: number;
+        line: string;
+      }[],
+      totalBottles: 0,
+      total: null as string | null,
+      date: null as string | null,
+      confidence: 0,
+    };
+
+    // 1. Search for store names (add more as needed)
+    const validStores = [
+      "makro",
+      "shoprite",
+      "checkers",
+      "pick n pay",
+      "woolworths",
+      "spar",
+      "liquor city",
+      "tops",
+      "ultra liquors",
+      "norman goodfellows",
+      "wine route",
+      "clicks",
+      "dischem",
+      "game",
+      "builders warehouse",
+      "bottle store",
+      "liquor store",
+      "wine shop",
+      "spirit store",
+    ];
+
+    for (const store of validStores) {
+      if (lowerText.includes(store)) {
+        receiptInfo.storeName = store.toUpperCase();
+        receiptInfo.confidence += 25;
+        break;
+      }
+    }
+
+    // 2. Search for Bloedlemoen Gin variations and count bottles
+    const bloedlemoenPatterns = [
+      /bloedlemoen\s*gin/i,
+      /bloedlemoen\s*750ml/i,
+      /bloedlemoen\s*bottle/i,
+      /bloedlemoen/i,
+    ];
+
+    for (const line of lines) {
+      // Check if line contains Bloedlemoen
+      for (const pattern of bloedlemoenPatterns) {
+        if (pattern.test(line)) {
+          // Extract quantity from the line
+          const quantity = extractQuantity(line);
+
+          const product = {
+            name: line.trim(),
+            quantity: quantity,
+            line: line,
+          };
+
+          receiptInfo.bloedlemoenProducts.push(product);
+          receiptInfo.totalBottles += quantity;
+
+          // Higher confidence for direct "bloedlemoen gin" match
+          if (/bloedlemoen\s*gin/i.test(line)) {
+            receiptInfo.confidence += 50;
+          } else {
+            receiptInfo.confidence += 30;
+          }
+
+          break; // Only match once per line
+        }
+      }
+    }
+
+    // 3. Search for total amount
+    const totalPatterns = [
+      /total[:\s]+r?[\s]*(\d+[.,]\d{2})/i,
+      /amount[:\s]+r?[\s]*(\d+[.,]\d{2})/i,
+      /^r[\s]*(\d+[.,]\d{2})$/i,
+      /(\d+[.,]\d{2})[*\s]*total/i,
+    ];
+
+    for (const line of lines) {
+      for (const pattern of totalPatterns) {
+        const match = line.match(pattern);
+        if (match) {
+          receiptInfo.total = match[1] || match[0];
+          receiptInfo.confidence += 15;
+          break;
+        }
+      }
+      if (receiptInfo.total) break;
+    }
+
+    // 4. Search for date
+    const datePatterns = [
+      /(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})/,
+      /(\d{1,2}\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\s+\d{2,4})/i,
+      /(\d{4}[\/\-\.]\d{1,2}[\/\-\.]\d{1,2})/,
+    ];
+
+    for (const line of lines) {
+      for (const pattern of datePatterns) {
+        const match = line.match(pattern);
+        if (match) {
+          receiptInfo.date = match[1];
+          receiptInfo.confidence += 10;
+          break;
+        }
+      }
+      if (receiptInfo.date) break;
+    }
+
+    // 5. Determine if receipt is valid
+    receiptInfo.isValid =
+      receiptInfo.confidence >= 40 &&
+      receiptInfo.bloedlemoenProducts.length > 0 &&
+      receiptInfo.totalBottles > 0;
+
+    return receiptInfo;
+  };
+
+  // Extract quantity from receipt line
+  const extractQuantity = (line: string): number => {
+    // Look for quantity patterns at the beginning or in the line
+    const quantityPatterns = [
+      /^(\d+)\s*x\s/i, // "2 x Bloedlemoen"
+      /^(\d+)\s+/, // "2 Bloedlemoen"
+      /\s(\d+)\s*x\s/i, // "Item 3 x Bloedlemoen"
+      /qty[:\s]*(\d+)/i, // "Qty: 2"
+      /quantity[:\s]*(\d+)/i, // "Quantity: 2"
+      /(\d+)\s*bottle/i, // "2 bottles"
+      /(\d+)\s*unit/i, // "2 units"
+    ];
+
+    for (const pattern of quantityPatterns) {
+      const match = line.match(pattern);
+      if (match) {
+        const qty = parseInt(match[1], 10);
+        return qty > 0 ? qty : 1;
+      }
+    }
+
+    // If no explicit quantity found, assume 1
+    return 1;
+  };
+
+  // Calculate points based on what was found
+  const calculatePoints = (receiptInfo: {
+    storeName: string | null;
+    bloedlemoenProducts: { name: string; quantity: number; line: string }[];
+    totalBottles: number;
+    total: string | null;
+    date: string | null;
+    confidence: number;
+  }) => {
+    let points = 0;
+
+    // Base points for valid Bloedlemoen purchase
+    points += 30;
+
+    // Points per bottle (to encourage bulk purchases)
+    points += receiptInfo.totalBottles * 20;
+
+    // Bonus for recognized store
+    if (receiptInfo.storeName) points += 20;
+
+    // Bonus for high-confidence detection
+    if (receiptInfo.confidence >= 80) points += 25;
+
+    // Bonus for complete information
+    if (receiptInfo.storeName && receiptInfo.total && receiptInfo.date) {
+      points += 15;
+    }
+
+    return Math.min(points, 150); // Cap at 150 points per receipt
   };
 
   const handleLogout = () => {

@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
 
 export default function PrivacyPolicyPage() {
   const router = useRouter();
@@ -175,6 +176,21 @@ export default function PrivacyPolicyPage() {
                   <li>Data portability</li>
                   <li>Withdraw consent at any time</li>
                 </ul>
+                <div className="mt-4 p-3 bg-muted rounded border-l-4 border-primary">
+                  <p className="text-sm font-medium mb-2">
+                    Request Data Deletion:
+                  </p>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    If you want to permanently delete your account and all
+                    associated data, you can submit a deletion request.
+                  </p>
+                  <Link
+                    href="/data-deletion"
+                    className="inline-flex items-center text-sm font-medium text-primary hover:underline"
+                  >
+                    Request Data Deletion →
+                  </Link>
+                </div>
               </div>
             </section>
 
