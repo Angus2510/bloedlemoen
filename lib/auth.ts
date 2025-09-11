@@ -36,8 +36,17 @@ export const authOptions: NextAuthOptions = {
       clientSecret: process.env.FACEBOOK_CLIENT_SECRET || "",
       authorization: {
         params: {
-          scope: "email public_profile",
+          scope: "email,public_profile",
+          redirect_uri: `${process.env.NEXTAUTH_URL}/api/auth/callback/facebook`,
         },
+      },
+      profile(profile) {
+        return {
+          id: profile.id,
+          name: profile.name,
+          email: profile.email,
+          image: profile.picture?.data?.url || null,
+        };
       },
     }),
     AppleProvider({
@@ -55,8 +64,12 @@ export const authOptions: NextAuthOptions = {
     signIn: "/login",
   },
   callbacks: {
-    async signIn() {
+    async signIn({ user, account }) {
       // Allow sign in for all providers
+      console.log("Sign in attempt:", {
+        provider: account?.provider,
+        userId: user.id,
+      });
       return true;
     },
     async session({ session, token }) {
@@ -80,6 +93,10 @@ export const authOptions: NextAuthOptions = {
         // Store provider info
         if (account) {
           token.provider = account.provider;
+          console.log("JWT callback:", {
+            provider: account.provider,
+            email: user.email,
+          });
         }
       }
       return token;
