@@ -9,6 +9,7 @@ import { signIn } from "next-auth/react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 
 export function LoginForm({
   className,
@@ -170,6 +171,14 @@ export function LoginForm({
                   Sign up
                 </a>
               </div>
+              <div className="text-center text-xs md:text-sm">
+                <Link 
+                  href="/privacy" 
+                  className="text-muted-foreground underline underline-offset-4 hover:text-primary"
+                >
+                  Privacy Policy
+                </Link>
+              </div>
             </div>
           </form>
           <div className="bg-muted relative hidden md:block">
@@ -188,9 +197,12 @@ export function LoginForm({
           Terms of Service
         </a>{" "}
         and{" "}
-        <a href="#" className="underline underline-offset-4 hover:text-primary">
+        <Link
+          href="/privacy"
+          className="underline underline-offset-4 hover:text-primary"
+        >
           Privacy Policy
-        </a>
+        </Link>
         .
       </div>
     </div>
