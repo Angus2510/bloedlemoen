@@ -57,6 +57,17 @@ export function LoginForm({
         <CardContent className="grid p-0 md:grid-cols-2">
           <form className="p-3 md:p-4 lg:p-6" onSubmit={handleSubmit}>
             <div className="flex flex-col gap-3 md:gap-4">
+              {/* Mobile Logo inside form */}
+              <div className="flex justify-center md:hidden">
+                <Image
+                  src="/Bloedlemoen-Gin-Logo.jpg"
+                  alt="Bloedlemoen Logo"
+                  width={180}
+                  height={90}
+                  className="object-contain"
+                />
+              </div>
+
               <div className="flex flex-col items-center text-center">
                 <h1 className="text-lg md:text-xl lg:text-2xl font-heading">
                   WELCOME BACK
