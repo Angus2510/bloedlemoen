@@ -135,7 +135,9 @@ export default function RedeemPage() {
               </p>
             </div>
             <button
-              onClick={() => router.push("/dashboard")}
+              onClick={() => {
+                window.open("https://shop.bloedlemoengin.com/", "_blank");
+              }}
               className="p-3 bg-black text-white border border-black font-heading text-sm font-medium hover:bg-gray-800 transition-colors min-w-[160px] h-[60px] flex items-center justify-center cursor-pointer"
             >
               EARN MORE POINTS

@@ -446,8 +446,7 @@ export default function Dashboard() {
             </Button>
             <button
               onClick={() => {
-                // Add your shop URL here or navigate to shop page
-                window.open("https://your-shop-url.com", "_blank");
+                window.open("https://shop.bloedlemoengin.com/", "_blank");
               }}
               className="bg-white text-black border border-black font-heading text-base md:text-lg font-medium hover:bg-gray-50 transition-colors px-6 md:px-8 py-4 md:py-6 w-full sm:w-auto min-w-[160px] h-[60px] flex items-center justify-center cursor-pointer"
             >
