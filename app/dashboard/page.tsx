@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -17,15 +17,97 @@ import { Upload, Camera, LogOut } from "lucide-react";
 import { createWorker } from "tesseract.js";
 import Image from "next/image";
 
+interface UserData {
+  id: string;
+  name: string | null;
+  email: string;
+  points: number;
+  totalEarned: number;
+  memberSince: string;
+}
+
+interface ActivityItem {
+  id: string;
+  type: string;
+  description: string;
+  points: number;
+  items: string[];
+  verified: boolean;
+  date: string;
+}
+
 export default function Dashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
-  const [points, setPoints] = useState(150); // Mock points, would come from database
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
   const [uploading, setUploading] = useState(false);
   const [ocrResult, setOcrResult] = useState("");
+  const [loadingData, setLoadingData] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  if (status === "loading") {
+  // Fetch user data on component mount
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const response = await fetch("/api/user/data");
+        if (response.ok) {
+          const data = await response.json();
+          setUserData(data.user);
+          setRecentActivity(data.recentActivity);
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      } finally {
+        setLoadingData(false);
+      }
+    };
+
+    if (session?.user) {
+      fetchUserData();
+    }
+  }, [session]);
+
+  // Function to save receipt data to database
+  const saveReceiptToDatabase = async (receiptData: {
+    ocrText: string;
+    storeName: string | null;
+    totalAmount: string | null;
+    detectedItems: string[];
+    pointsEarned: number;
+  }) => {
+    try {
+      const response = await fetch("/api/receipts/process", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(receiptData),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        // Update user points and refresh activity
+        setUserData((prev) =>
+          prev ? { ...prev, points: result.newPointsBalance } : null
+        );
+
+        // Refresh recent activity
+        const userResponse = await fetch("/api/user/data");
+        if (userResponse.ok) {
+          const data = await userResponse.json();
+          setRecentActivity(data.recentActivity);
+        }
+
+        return result;
+      }
+    } catch (error) {
+      console.error("Error saving receipt:", error);
+    }
+    return null;
+  };
+
+  if (status === "loading" || loadingData) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
@@ -64,30 +146,41 @@ export default function Dashboard() {
 
       if (receiptInfo.isValid) {
         const pointsEarned = calculatePoints(receiptInfo);
-        const newPoints = points + pointsEarned;
-        setPoints(newPoints);
 
-        let message = `🎉 Bloedlemoen Gin Purchase Verified!\n\n`;
-        message += `Points Earned: ${pointsEarned}\n`;
-        message += `Total Points: ${newPoints}\n\n`;
-
-        message += `📍 Store: ${
-          receiptInfo.storeName || "Store not identified"
-        }\n`;
-        message += `🍾 Total Bottles: ${receiptInfo.totalBottles}\n\n`;
-
-        message += `Products Found:\n`;
-        receiptInfo.bloedlemoenProducts.forEach((product, index) => {
-          message += `${index + 1}. ${product.name} (Qty: ${
-            product.quantity
-          })\n`;
+        // Save to database
+        const dbResult = await saveReceiptToDatabase({
+          ocrText: text,
+          storeName: receiptInfo.storeName,
+          totalAmount: receiptInfo.total,
+          detectedItems: receiptInfo.bloedlemoenProducts.map((p) => p.name),
+          pointsEarned: pointsEarned,
         });
 
-        if (receiptInfo.total)
-          message += `\n💰 Receipt Total: R${receiptInfo.total}`;
-        if (receiptInfo.date) message += `\n📅 Date: ${receiptInfo.date}`;
+        if (dbResult) {
+          let message = `🎉 Bloedlemoen Gin Purchase Verified!\n\n`;
+          message += `Points Earned: ${pointsEarned}\n`;
+          message += `Total Points: ${dbResult.newPointsBalance}\n\n`;
 
-        alert(message);
+          message += `📍 Store: ${
+            receiptInfo.storeName || "Store not identified"
+          }\n`;
+          message += `🍾 Total Bottles: ${receiptInfo.totalBottles}\n\n`;
+
+          message += `Products Found:\n`;
+          receiptInfo.bloedlemoenProducts.forEach((product, index) => {
+            message += `${index + 1}. ${product.name} (Qty: ${
+              product.quantity
+            })\n`;
+          });
+
+          if (receiptInfo.total)
+            message += `\n💰 Receipt Total: R${receiptInfo.total}`;
+          if (receiptInfo.date) message += `\n📅 Date: ${receiptInfo.date}`;
+
+          alert(message);
+        } else {
+          alert("❌ Receipt could not be saved to database. Please try again.");
+        }
       } else {
         let errorMessage = "❌ Could not verify Bloedlemoen Gin purchase.\n\n";
         errorMessage += "Please ensure your receipt shows:\n";
@@ -356,7 +449,7 @@ export default function Dashboard() {
             <CardContent>
               <div className="text-center">
                 <div className="text-3xl md:text-4xl font-bold text-primary mb-2">
-                  {points}
+                  {userData?.points || 0}
                 </div>
                 <p className="text-muted-foreground text-sm md:text-base">
                   Total Points Earned
@@ -365,12 +458,17 @@ export default function Dashboard() {
               <div className="mt-4 md:mt-6 space-y-2">
                 <div className="flex justify-between text-xs md:text-sm">
                   <span>Progress to next reward</span>
-                  <span>{points}/200</span>
+                  <span>{userData?.points || 0}/200</span>
                 </div>
                 <div className="bg-muted rounded-full h-2">
                   <div
                     className="bg-primary h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${Math.min((points / 200) * 100, 100)}%` }}
+                    style={{
+                      width: `${Math.min(
+                        ((userData?.points || 0) / 200) * 100,
+                        100
+                      )}%`,
+                    }}
                   ></div>
                 </div>
               </div>
@@ -467,32 +565,43 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <div>
-                  <p className="font-medium text-sm md:text-base">
-                    Receipt uploaded
-                  </p>
-                  <p className="text-xs md:text-sm text-muted-foreground">
-                    Today, 2:30 PM
+              {recentActivity.length > 0 ? (
+                recentActivity.map((activity) => (
+                  <div
+                    key={activity.id}
+                    className="flex items-center justify-between p-3 bg-muted rounded-lg"
+                  >
+                    <div>
+                      <p className="font-medium text-sm md:text-base">
+                        {activity.description}
+                      </p>
+                      <p className="text-xs md:text-sm text-muted-foreground">
+                        {new Date(activity.date).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </p>
+                      {activity.items.length > 0 && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Items: {activity.items.join(", ")}
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-green-600 font-medium text-sm md:text-base">
+                      +{activity.points} points
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center text-muted-foreground p-6">
+                  <p>No recent activity</p>
+                  <p className="text-xs mt-1">
+                    Upload your first receipt to get started!
                   </p>
                 </div>
-                <div className="text-green-600 font-medium text-sm md:text-base">
-                  +50 points
-                </div>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <div>
-                  <p className="font-medium text-sm md:text-base">
-                    Welcome bonus
-                  </p>
-                  <p className="text-xs md:text-sm text-muted-foreground">
-                    Yesterday, 10:15 AM
-                  </p>
-                </div>
-                <div className="text-green-600 font-medium text-sm md:text-base">
-                  +100 points
-                </div>
-              </div>
+              )}
             </div>
           </CardContent>
         </Card>

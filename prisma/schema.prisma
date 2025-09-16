@@ -1,0 +1,141 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// NextAuth.js required tables
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime? @map("email_verified")
+  image         String?
+  
+  // Campaign-specific fields
+  points        Int       @default(0)
+  totalEarned   Int       @default(0) @map("total_earned")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  accounts      Account[]
+  sessions      Session[]
+  receipts      Receipt[]
+  redemptions   Redemption[]
+
+  @@map("users")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verificationtokens")
+}
+
+// Campaign-specific models
+model Receipt {
+  id              String   @id @default(cuid())
+  userId          String   @map("user_id")
+  imagePath       String   @map("image_path")
+  ocrText         String?  @map("ocr_text") @db.Text
+  storeName       String?  @map("store_name")
+  totalAmount     Float?   @map("total_amount")
+  detectedItems   String[] @map("detected_items")
+  pointsEarned    Int      @map("points_earned")
+  isVerified      Boolean  @default(false) @map("is_verified")
+  verifiedAt      DateTime? @map("verified_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("receipts")
+}
+
+model Reward {
+  id          String   @id @default(cuid())
+  title       String
+  description String   @db.Text
+  pointsCost  Int      @map("points_cost")
+  imagePath   String?  @map("image_path")
+  category    String?
+  isActive    Boolean  @default(true) @map("is_active")
+  stockCount  Int?     @map("stock_count")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  
+  redemptions Redemption[]
+
+  @@map("rewards")
+}
+
+model Redemption {
+  id          String   @id @default(cuid())
+  userId      String   @map("user_id")
+  rewardId    String   @map("reward_id")
+  pointsUsed  Int      @map("points_used")
+  status      RedemptionStatus @default(PENDING)
+  redeemedAt  DateTime @default(now()) @map("redeemed_at")
+  fulfilledAt DateTime? @map("fulfilled_at")
+  
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reward Reward @relation(fields: [rewardId], references: [id], onDelete: Cascade)
+
+  @@map("redemptions")
+}
+
+enum RedemptionStatus {
+  PENDING
+  FULFILLED
+  CANCELLED
+}
+
+// Campaign analytics (optional - for future expansion)
+model CampaignEvent {
+  id        String   @id @default(cuid())
+  userId    String?  @map("user_id")
+  eventType String   @map("event_type")
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("campaign_events")
+}

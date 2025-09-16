@@ -4,6 +4,7 @@ declare module "next-auth" {
   interface User {
     id: string;
     points?: number;
+    totalEarned?: number;
   }
 
   interface Session {
@@ -13,6 +14,7 @@ declare module "next-auth" {
       email?: string | null;
       image?: string | null;
       points?: number;
+      totalEarned?: number;
     };
   }
 }

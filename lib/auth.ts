@@ -2,9 +2,11 @@ import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import FacebookProvider from "next-auth/providers/facebook";
-import AppleProvider from "next-auth/providers/apple";
+import { PrismaAdapter } from "@auth/prisma-adapter";
+import { prisma } from "./prisma";
 
 export const authOptions: NextAuthOptions = {
+  adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
       name: "credentials",
@@ -13,18 +15,48 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        // In a real app, you would validate against your database
-        // For now, we'll use a simple check
-        if (credentials?.email && credentials?.password) {
-          // This is where you'd typically check against your database
-          // For demo purposes, we'll accept any email/password combo
-          return {
-            id: "1",
-            email: credentials.email,
-            name: credentials.email.split("@")[0],
-          };
+        if (!credentials?.email || !credentials?.password) {
+          return null;
         }
-        return null;
+
+        try {
+          // Find user in database
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email },
+          });
+
+          if (!user) {
+            // For demo purposes, create a new user if not found
+            // In production, you might want to handle this differently
+            const newUser = await prisma.user.create({
+              data: {
+                email: credentials.email,
+                name: credentials.email.split("@")[0],
+                // Note: In production, you'd hash and store the password
+                // const hashedPassword = await bcrypt.hash(credentials.password, 12);
+              },
+            });
+            return {
+              id: newUser.id,
+              email: newUser.email,
+              name: newUser.name,
+              image: newUser.image,
+            };
+          }
+
+          // In a real app, you'd verify the password here
+          // const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
+          // For demo purposes, we'll accept any password
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            image: user.image,
+          };
+        } catch (error) {
+          console.error("Auth error:", error);
+          return null;
+        }
       },
     }),
     GoogleProvider({
@@ -49,60 +81,33 @@ export const authOptions: NextAuthOptions = {
         };
       },
     }),
-    AppleProvider({
-      clientId: process.env.APPLE_ID || "",
-      clientSecret: process.env.APPLE_SECRET || "",
-      authorization: {
-        params: {
-          scope: "name email",
-          response_mode: "form_post",
-        },
-      },
-    }),
   ],
   pages: {
     signIn: "/login",
   },
   callbacks: {
     async signIn({ user, account }) {
-      // Allow sign in for all providers
       console.log("Sign in attempt:", {
         provider: account?.provider,
-        userId: user.id,
+        email: user.email,
       });
       return true;
     },
-    async session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.sub || "";
-        session.user.name = token.name as string;
-        session.user.email = token.email as string;
-        session.user.image = token.picture as string;
-        // Initialize user points (in a real app, this would come from database)
-        session.user.points = 0;
+    async session({ session, user }) {
+      if (session.user && user) {
+        session.user.id = user.id;
+        // Get user's current points from database
+        const dbUser = await prisma.user.findUnique({
+          where: { id: user.id },
+          select: { points: true, totalEarned: true },
+        });
+        session.user.points = dbUser?.points || 0;
+        session.user.totalEarned = dbUser?.totalEarned || 0;
       }
       return session;
     },
-    async jwt({ token, user, account }) {
-      if (user) {
-        token.sub = user.id;
-        token.name = user.name;
-        token.email = user.email;
-        token.picture = user.image;
-
-        // Store provider info
-        if (account) {
-          token.provider = account.provider;
-          console.log("JWT callback:", {
-            provider: account.provider,
-            email: user.email,
-          });
-        }
-      }
-      return token;
-    },
   },
   session: {
-    strategy: "jwt",
+    strategy: "database",
   },
 };
