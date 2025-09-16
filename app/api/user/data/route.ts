@@ -3,7 +3,42 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-export async function GET() {
+interface ReceiptSelect {
+  id: string;
+  storeName: string | null;
+  pointsEarned: number;
+  detectedItems: string[];
+  isVerified: boolean;
+  createdAt: Date;
+}
+
+interface ActivityItem {
+  id: string;
+  type: string;
+  description: string;
+  points: number;
+  items: string[];
+  verified: boolean;
+  date: Date;
+}
+
+interface UserData {
+  id: string;
+  name: string | null;
+  email: string;
+  points: number;
+  totalEarned: number;
+  memberSince: Date;
+}
+
+interface UserDataResponse {
+  user: UserData;
+  recentActivity: ActivityItem[];
+}
+
+export async function GET(): Promise<
+  NextResponse<UserDataResponse | { error: string }>
+> {
   try {
     const session = await getServerSession(authOptions);
 
@@ -41,25 +76,29 @@ export async function GET() {
     }
 
     // Format recent activity for display
-    const recentActivity = user.receipts.map((receipt) => ({
-      id: receipt.id,
-      type: "receipt_upload",
-      description: `Receipt from ${receipt.storeName || "Unknown Store"}`,
-      points: receipt.pointsEarned,
-      items: receipt.detectedItems,
-      verified: receipt.isVerified,
-      date: receipt.createdAt,
-    }));
+    const recentActivity: ActivityItem[] = user.receipts.map(
+      (receipt: ReceiptSelect) => ({
+        id: receipt.id,
+        type: "receipt_upload",
+        description: `Receipt from ${receipt.storeName || "Unknown Store"}`,
+        points: receipt.pointsEarned,
+        items: receipt.detectedItems,
+        verified: receipt.isVerified,
+        date: receipt.createdAt,
+      })
+    );
+
+    const userData: UserData = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      points: user.points,
+      totalEarned: user.totalEarned,
+      memberSince: user.createdAt,
+    };
 
     return NextResponse.json({
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        points: user.points,
-        totalEarned: user.totalEarned,
-        memberSince: user.createdAt,
-      },
+      user: userData,
       recentActivity,
     });
   } catch (error) {

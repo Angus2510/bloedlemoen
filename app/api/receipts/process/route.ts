@@ -3,7 +3,36 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-export async function POST(request: NextRequest) {
+interface ReceiptProcessRequest {
+  ocrText: string;
+  storeName?: string | null;
+  totalAmount?: string | null;
+  detectedItems?: string[];
+  pointsEarned: number;
+}
+
+interface ReceiptProcessResponse {
+  success: boolean;
+  receipt: {
+    id: string;
+    userId: string;
+    imagePath: string;
+    ocrText: string;
+    storeName: string | null;
+    totalAmount: number | null;
+    detectedItems: string[];
+    pointsEarned: number;
+    isVerified: boolean;
+    verifiedAt: Date | null;
+    createdAt: Date;
+  };
+  newPointsBalance: number;
+  pointsEarned: number;
+}
+
+export async function POST(
+  request: NextRequest
+): Promise<NextResponse<ReceiptProcessResponse | { error: string }>> {
   try {
     const session = await getServerSession(authOptions);
 
@@ -11,7 +40,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
+    const body: ReceiptProcessRequest = await request.json();
     const { ocrText, storeName, totalAmount, detectedItems, pointsEarned } =
       body;
 
