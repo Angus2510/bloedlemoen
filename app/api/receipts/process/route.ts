@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 interface ReceiptProcessRequest {
   ocrText: string;
   storeName?: string | null;
-  totalAmount?: string | null;
+  totalAmount?: string | null; // Comes as string from frontend
   detectedItems?: string[];
   pointsEarned: number;
 }
@@ -17,7 +17,7 @@ interface ReceiptProcessResponse {
     id: string;
     userId: string;
     imagePath: string;
-    ocrText: string;
+    ocrText: string | null; // Can be null in database
     storeName: string | null;
     totalAmount: number | null;
     detectedItems: string[];
@@ -61,6 +61,9 @@ export async function POST(
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
+    // Convert totalAmount from string to number
+    const totalAmountNumber = totalAmount ? parseFloat(totalAmount) : null;
+
     // Create the receipt record
     const receipt = await prisma.receipt.create({
       data: {
@@ -68,7 +71,7 @@ export async function POST(
         imagePath: "", // No image saved, just empty string
         ocrText: ocrText,
         storeName: storeName || null,
-        totalAmount: totalAmount || null,
+        totalAmount: totalAmountNumber,
         detectedItems: detectedItems || [],
         pointsEarned: pointsEarned,
         isVerified: true, // Auto-verify for now
