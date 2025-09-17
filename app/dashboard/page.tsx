@@ -240,11 +240,26 @@ export default function Dashboard() {
     console.log("Full text length:", text.length);
     console.log("Number of lines:", lines.length);
     console.log("First 5 lines:", lines.slice(0, 5));
-    console.log("Lines containing 'fever':", lines.filter(line => line.toLowerCase().includes('fever')));
-    console.log("Lines containing 'tonic':", lines.filter(line => line.toLowerCase().includes('tonic')));
-    console.log("Lines containing 'pack':", lines.filter(line => line.toLowerCase().includes('pack')));
-    console.log("Lines containing 'free':", lines.filter(line => line.toLowerCase().includes('free')));
-    console.log("Lines containing '+':", lines.filter(line => line.includes('+')));
+    console.log(
+      "Lines containing 'fever':",
+      lines.filter((line) => line.toLowerCase().includes("fever"))
+    );
+    console.log(
+      "Lines containing 'tonic':",
+      lines.filter((line) => line.toLowerCase().includes("tonic"))
+    );
+    console.log(
+      "Lines containing 'pack':",
+      lines.filter((line) => line.toLowerCase().includes("pack"))
+    );
+    console.log(
+      "Lines containing 'free':",
+      lines.filter((line) => line.toLowerCase().includes("free"))
+    );
+    console.log(
+      "Lines containing '+':",
+      lines.filter((line) => line.includes("+"))
+    );
     console.log("===============================");
 
     const receiptInfo = {
@@ -353,7 +368,9 @@ export default function Dashboard() {
       // Check for Bloedlemoen products
       for (const pattern of bloedlemoenPatterns) {
         if (pattern.test(cleanLine)) {
-          console.log(`🍾 BLOEDLEMOEN FOUND: "${cleanLine}" matched pattern: ${pattern}`);
+          console.log(
+            `🍾 BLOEDLEMOEN FOUND: "${cleanLine}" matched pattern: ${pattern}`
+          );
           const quantity = extractQuantity(cleanLine);
           console.log(`   Quantity: ${quantity}`);
 
@@ -385,7 +402,9 @@ export default function Dashboard() {
       // Check for Fever Tree Tonic products (can be in the same line as Bloedlemoen)
       for (const pattern of feverTreePatterns) {
         if (pattern.test(cleanLine)) {
-          console.log(`🥤 FEVER TREE FOUND: "${cleanLine}" matched pattern: ${pattern}`);
+          console.log(
+            `🥤 FEVER TREE FOUND: "${cleanLine}" matched pattern: ${pattern}`
+          );
           const quantity = extractFeverTreeQuantity(cleanLine);
           const packType = detectFeverTreePackType(cleanLine);
           console.log(`   Quantity: ${quantity}, Pack type: ${packType}`);
@@ -468,10 +487,18 @@ export default function Dashboard() {
     console.log("=== FINAL ANALYSIS RESULTS ===");
     console.log("Total Bloedlemoen bottles:", receiptInfo.totalBottles);
     console.log("Total Fever Tree packs:", receiptInfo.totalFeverTreePacks);
-    console.log("Total products found:", receiptInfo.bloedlemoenProducts.length);
+    console.log(
+      "Total products found:",
+      receiptInfo.bloedlemoenProducts.length
+    );
     console.log("Confidence score:", receiptInfo.confidence);
     console.log("Is valid:", receiptInfo.isValid);
-    console.log("Products detected:", receiptInfo.bloedlemoenProducts.map(p => `${p.type}: ${p.name} (${p.quantity}x, ${p.points} pts)`));
+    console.log(
+      "Products detected:",
+      receiptInfo.bloedlemoenProducts.map(
+        (p) => `${p.type}: ${p.name} (${p.quantity}x, ${p.points} pts)`
+      )
+    );
     console.log("===============================");
 
     return receiptInfo;
@@ -512,13 +539,19 @@ export default function Dashboard() {
     const lowerLine = line.toLowerCase();
 
     // Check for explicit pack size mentions
-    if (lowerLine.includes("pack of 4") || (lowerLine.includes("4") && lowerLine.includes("pack"))) {
+    if (
+      lowerLine.includes("pack of 4") ||
+      (lowerLine.includes("4") && lowerLine.includes("pack"))
+    ) {
       return "4-pack";
     }
-    if (lowerLine.includes("pack of 8") || (lowerLine.includes("8") && lowerLine.includes("pack"))) {
+    if (
+      lowerLine.includes("pack of 8") ||
+      (lowerLine.includes("8") && lowerLine.includes("pack"))
+    ) {
       return "8-pack";
     }
-    
+
     // Check for bottle/can size indicators
     if (
       lowerLine.includes("200") &&
