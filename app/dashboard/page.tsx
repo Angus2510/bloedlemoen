@@ -42,7 +42,6 @@ export default function Dashboard() {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [ocrResult, setOcrResult] = useState("");
   const [loadingData, setLoadingData] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -130,26 +129,53 @@ export default function Dashboard() {
     if (!file) return;
 
     setUploading(true);
-    setOcrResult("");
 
     try {
-      const worker = await createWorker("eng");
-      const {
-        data: { text },
-      } = await worker.recognize(file);
-      await worker.terminate();
+      let extractedText = "";
 
-      setOcrResult(text);
+      if (file.type === "application/pdf") {
+        // Handle PDF files
+        const arrayBuffer = await file.arrayBuffer();
+        const response = await fetch("/api/receipts/extract-pdf", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            pdfData: Array.from(new Uint8Array(arrayBuffer)),
+            fileName: file.name,
+          }),
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          extractedText = result.text;
+        } else {
+          const errorData = await response.json();
+          console.error("PDF extraction failed:", errorData);
+          throw new Error(
+            `PDF extraction failed: ${errorData.error || "Unknown error"}`
+          );
+        }
+      } else {
+        // Handle image files with OCR
+        const worker = await createWorker("eng");
+        const {
+          data: { text },
+        } = await worker.recognize(file);
+        await worker.terminate();
+        extractedText = text;
+      }
 
       // Enhanced receipt validation with specific search criteria
-      const receiptInfo = analyzeReceipt(text);
+      const receiptInfo = analyzeReceipt(extractedText);
 
       if (receiptInfo.isValid) {
         const pointsEarned = calculatePoints(receiptInfo);
 
         // Save to database
         const dbResult = await saveReceiptToDatabase({
-          ocrText: text,
+          ocrText: extractedText,
           storeName: receiptInfo.storeName,
           totalAmount: receiptInfo.total,
           detectedItems: receiptInfo.bloedlemoenProducts.map((p) => p.name),
@@ -157,40 +183,34 @@ export default function Dashboard() {
         });
 
         if (dbResult) {
-          let message = `🎉 Bloedlemoen Gin Purchase Verified!\n\n`;
-          message += `Points Earned: ${pointsEarned}\n`;
-          message += `Total Points: ${dbResult.newPointsBalance}\n\n`;
+          // Clean, simple success message showing only what user needs
+          let message = `🎉 Success! Purchase Verified\n\n`;
 
-          message += `📍 Store: ${
-            receiptInfo.storeName || "Store not identified"
-          }\n`;
-          message += `🍾 Total Bottles: ${receiptInfo.totalBottles}\n\n`;
+          if (receiptInfo.totalBottles > 0) {
+            message += `🍾 Bloedlemoen Bottles: ${receiptInfo.totalBottles}\n`;
+          }
 
-          message += `Products Found:\n`;
-          receiptInfo.bloedlemoenProducts.forEach((product, index) => {
-            message += `${index + 1}. ${product.name} (Qty: ${
-              product.quantity
-            })\n`;
-          });
+          if (receiptInfo.totalFeverTreePacks > 0) {
+            message += `🥤 Fever Tree Packs: ${receiptInfo.totalFeverTreePacks}\n`;
+          }
 
-          if (receiptInfo.total)
-            message += `\n💰 Receipt Total: R${receiptInfo.total}`;
-          if (receiptInfo.date) message += `\n📅 Date: ${receiptInfo.date}`;
+          message += `⭐ Points Earned: ${pointsEarned}\n`;
+          message += `💰 Your Total Points: ${dbResult.newPointsBalance}`;
 
           alert(message);
         } else {
           alert("❌ Receipt could not be saved to database. Please try again.");
         }
       } else {
-        let errorMessage = "❌ Could not verify Bloedlemoen Gin purchase.\n\n";
+        let errorMessage = "❌ Could not verify qualifying products.\n\n";
         errorMessage += "Please ensure your receipt shows:\n";
-        errorMessage += "✓ 'Bloedlemoen Gin' product name\n";
-        errorMessage += "✓ Quantity/number of bottles\n";
+        errorMessage += "✓ 'Bloedlemoen Gin' (100 points per bottle)\n";
+        errorMessage +=
+          "✓ 'Fever Tree Tonic' 4-pack or 8-pack (50 points each)\n";
         errorMessage += "✓ Clear store name\n\n";
 
         if (receiptInfo.bloedlemoenProducts.length === 0) {
-          errorMessage +=
-            "No Bloedlemoen Gin products detected in this receipt.";
+          errorMessage += "No qualifying products detected in this receipt.";
         } else {
           errorMessage += `Found ${receiptInfo.bloedlemoenProducts.length} potential product(s) but couldn't verify them.`;
         }
@@ -199,7 +219,9 @@ export default function Dashboard() {
       }
     } catch (error) {
       console.error("OCR Error:", error);
-      alert("Error processing image. Please try again.");
+      alert(
+        "Error processing file. Please try again with a clear image or PDF."
+      );
     } finally {
       setUploading(false);
     }
@@ -213,6 +235,18 @@ export default function Dashboard() {
       .map((line) => line.trim())
       .filter((line) => line.length > 0);
 
+    // Debug logging
+    console.log("=== RECEIPT ANALYSIS DEBUG ===");
+    console.log("Full text length:", text.length);
+    console.log("Number of lines:", lines.length);
+    console.log("First 5 lines:", lines.slice(0, 5));
+    console.log("Lines containing 'fever':", lines.filter(line => line.toLowerCase().includes('fever')));
+    console.log("Lines containing 'tonic':", lines.filter(line => line.toLowerCase().includes('tonic')));
+    console.log("Lines containing 'pack':", lines.filter(line => line.toLowerCase().includes('pack')));
+    console.log("Lines containing 'free':", lines.filter(line => line.toLowerCase().includes('free')));
+    console.log("Lines containing '+':", lines.filter(line => line.includes('+')));
+    console.log("===============================");
+
     const receiptInfo = {
       isValid: false,
       storeName: null as string | null,
@@ -220,8 +254,11 @@ export default function Dashboard() {
         name: string;
         quantity: number;
         line: string;
+        type: "bloedlemoen" | "fever-tree";
+        points: number;
       }[],
       totalBottles: 0,
+      totalFeverTreePacks: 0,
       total: null as string | null,
       date: null as string | null,
       confidence: 0,
@@ -258,39 +295,127 @@ export default function Dashboard() {
       }
     }
 
-    // 2. Search for Bloedlemoen Gin variations and count bottles
+    // 2. Search for Bloedlemoen Gin variations and Fever Tree Tonic
     const bloedlemoenPatterns = [
       /bloedlemoen\s*gin/i,
       /bloedlemoen\s*750ml/i,
       /bloedlemoen\s*bottle/i,
+      /bloedlemoen\s*premium/i,
+      /bloedlemoen\s*blood\s*orange/i,
       /bloedlemoen/i,
     ];
 
+    const feverTreePatterns = [
+      // Original patterns
+      /fever\s*tree\s*tonic/i,
+      /fever\s*tree/i,
+      /fvt\s*tonic/i,
+      /fvt\s*200/i,
+      /fvt\s*150\s*ml/i,
+      /fvt\s*can/i,
+      /fvt/i,
+      /fever.*tree/i,
+      /tonic.*fever/i,
+      // Enhanced patterns for bundle descriptions
+      /free\s*fever\s*tree/i,
+      /fever\s*tree\s*tonic\s*water/i,
+      /tonic\s*water.*fever/i,
+      /tonic\s*water.*pack/i,
+      /fever.*tonic.*water/i,
+      /fever.*tree.*water/i,
+      // Pattern for when it's mentioned as part of a bundle
+      /\+.*fever.*tree/i,
+      /\+.*tonic.*water/i,
+      /complimentary.*fever/i,
+      /complimentary.*tonic/i,
+      // Even more specific patterns for the exact case
+      /tonic\s*water/i, // Generic tonic water when in context
+      /fever.*tree.*tonic.*water.*pack/i,
+      /free.*tonic/i,
+      /bonus.*tonic/i,
+      /included.*tonic/i,
+      /with.*tonic/i,
+      // Pattern specifically for "Pack of X" format
+      /fever.*tree.*pack\s*of/i,
+      /tonic.*pack\s*of/i,
+    ];
+
+    // Track lines we've already processed to avoid duplicates
+    const processedLines = new Set();
+
     for (const line of lines) {
-      // Check if line contains Bloedlemoen
+      const cleanLine = line.trim();
+      if (cleanLine.length < 3) continue;
+
+      let hasBloedlemoen = false;
+      let hasFeverTree = false;
+
+      // Check for Bloedlemoen products
       for (const pattern of bloedlemoenPatterns) {
-        if (pattern.test(line)) {
-          // Extract quantity from the line
-          const quantity = extractQuantity(line);
+        if (pattern.test(cleanLine)) {
+          console.log(`🍾 BLOEDLEMOEN FOUND: "${cleanLine}" matched pattern: ${pattern}`);
+          const quantity = extractQuantity(cleanLine);
+          console.log(`   Quantity: ${quantity}`);
 
           const product = {
-            name: line.trim(),
+            name: cleanLine,
             quantity: quantity,
-            line: line,
+            line: cleanLine,
+            type: "bloedlemoen" as const,
+            points: 100 * quantity, // 100 points per bottle
           };
 
           receiptInfo.bloedlemoenProducts.push(product);
           receiptInfo.totalBottles += quantity;
+          hasBloedlemoen = true;
 
           // Higher confidence for direct "bloedlemoen gin" match
-          if (/bloedlemoen\s*gin/i.test(line)) {
+          if (/bloedlemoen\s*gin/i.test(cleanLine)) {
             receiptInfo.confidence += 50;
+          } else if (/bloedlemoen\s*(750ml|bottle|premium)/i.test(cleanLine)) {
+            receiptInfo.confidence += 40;
           } else {
             receiptInfo.confidence += 30;
           }
 
-          break; // Only match once per line
+          break; // Only match once per line for Bloedlemoen
         }
+      }
+
+      // Check for Fever Tree Tonic products (can be in the same line as Bloedlemoen)
+      for (const pattern of feverTreePatterns) {
+        if (pattern.test(cleanLine)) {
+          console.log(`🥤 FEVER TREE FOUND: "${cleanLine}" matched pattern: ${pattern}`);
+          const quantity = extractFeverTreeQuantity(cleanLine);
+          const packType = detectFeverTreePackType(cleanLine);
+          console.log(`   Quantity: ${quantity}, Pack type: ${packType}`);
+
+          const product = {
+            name: cleanLine,
+            quantity: quantity,
+            line: cleanLine,
+            type: "fever-tree" as const,
+            points: 50 * quantity, // 50 points per pack (4-pack or 8-pack)
+          };
+
+          receiptInfo.bloedlemoenProducts.push(product);
+          receiptInfo.totalFeverTreePacks += quantity;
+          hasFeverTree = true;
+
+          // Confidence based on pack type detection
+          if (packType === "4-pack" || packType === "8-pack") {
+            receiptInfo.confidence += 40;
+          } else {
+            receiptInfo.confidence += 25;
+          }
+
+          break; // Only match once per line for Fever Tree
+        }
+      }
+
+      // Mark line as processed only if we found something to avoid duplicate processing
+      if (hasBloedlemoen || hasFeverTree) {
+        processedLines.add(cleanLine);
       }
     }
 
@@ -337,29 +462,142 @@ export default function Dashboard() {
     receiptInfo.isValid =
       receiptInfo.confidence >= 40 &&
       receiptInfo.bloedlemoenProducts.length > 0 &&
-      receiptInfo.totalBottles > 0;
+      (receiptInfo.totalBottles > 0 || receiptInfo.totalFeverTreePacks > 0);
+
+    // Final debug summary
+    console.log("=== FINAL ANALYSIS RESULTS ===");
+    console.log("Total Bloedlemoen bottles:", receiptInfo.totalBottles);
+    console.log("Total Fever Tree packs:", receiptInfo.totalFeverTreePacks);
+    console.log("Total products found:", receiptInfo.bloedlemoenProducts.length);
+    console.log("Confidence score:", receiptInfo.confidence);
+    console.log("Is valid:", receiptInfo.isValid);
+    console.log("Products detected:", receiptInfo.bloedlemoenProducts.map(p => `${p.type}: ${p.name} (${p.quantity}x, ${p.points} pts)`));
+    console.log("===============================");
 
     return receiptInfo;
   };
 
-  // Extract quantity from receipt line
+  // Extract quantity for Fever Tree products
+  const extractFeverTreeQuantity = (line: string): number => {
+    const feverTreeQuantityPatterns = [
+      /^(\d+)\s*x\s/i, // "2 x FVT"
+      /^(\d+)\s+/i, // "2 FVT" at start
+      /(\d+)\s*pack/i, // "4 pack"
+      /pack\s*of\s*(\d+)/i, // "Pack of 4" - NEW PATTERN
+      /(\d+)\s*@/i, // "1 @ R50"
+      /(\d+)\s*\*/i, // "1 * R50"
+      /qty[:\s]*(\d+)/i, // "Qty: 1"
+      /\(pack\s*of\s*(\d+)\)/i, // "(Pack of 4)" - NEW PATTERN
+      /\(\s*(\d+)\s*\)/i, // "(4)" when referring to pack size
+    ];
+
+    for (const pattern of feverTreeQuantityPatterns) {
+      const match = line.match(pattern);
+      if (match) {
+        const qty = parseInt(match[1], 10);
+        if (qty > 0 && qty <= 10) {
+          // Reasonable limit for packs
+          return qty;
+        }
+      }
+    }
+
+    return 1; // Default to 1 pack
+  };
+
+  // Detect Fever Tree pack type
+  const detectFeverTreePackType = (
+    line: string
+  ): "4-pack" | "8-pack" | "unknown" => {
+    const lowerLine = line.toLowerCase();
+
+    // Check for explicit pack size mentions
+    if (lowerLine.includes("pack of 4") || (lowerLine.includes("4") && lowerLine.includes("pack"))) {
+      return "4-pack";
+    }
+    if (lowerLine.includes("pack of 8") || (lowerLine.includes("8") && lowerLine.includes("pack"))) {
+      return "8-pack";
+    }
+    
+    // Check for bottle/can size indicators
+    if (
+      lowerLine.includes("200") &&
+      (lowerLine.includes("ml") || lowerLine.includes("fvt"))
+    ) {
+      return "4-pack"; // 200ml bottles usually come in 4-packs
+    }
+    if (
+      lowerLine.includes("150") &&
+      (lowerLine.includes("ml") || lowerLine.includes("can"))
+    ) {
+      return "8-pack"; // 150ml cans usually come in 8-packs
+    }
+
+    // Check for patterns with parentheses
+    if (lowerLine.includes("(4)") || lowerLine.includes("( 4 )")) {
+      return "4-pack";
+    }
+    if (lowerLine.includes("(8)") || lowerLine.includes("( 8 )")) {
+      return "8-pack";
+    }
+
+    return "unknown";
+  };
+
+  // Extract quantity from receipt line with improved patterns
   const extractQuantity = (line: string): number => {
-    // Look for quantity patterns at the beginning or in the line
+    // Look for quantity patterns - improved to catch more variations
     const quantityPatterns = [
       /^(\d+)\s*x\s/i, // "2 x Bloedlemoen"
-      /^(\d+)\s+/, // "2 Bloedlemoen"
+      /^(\d+)\s+/i, // "2 Bloedlemoen" at start of line
       /\s(\d+)\s*x\s/i, // "Item 3 x Bloedlemoen"
       /qty[:\s]*(\d+)/i, // "Qty: 2"
       /quantity[:\s]*(\d+)/i, // "Quantity: 2"
       /(\d+)\s*bottle/i, // "2 bottles"
       /(\d+)\s*unit/i, // "2 units"
+      /(\d+)\s*each/i, // "2 each"
+      /(\d+)\s*pc/i, // "2 pc"
+      /(\d+)\s*pcs/i, // "2 pcs"
+      // New patterns for common receipt formats
+      /(\d+)\s*@\s*r?\d+/i, // "2 @ R150" (quantity @ price)
+      /(\d+)\s*\*\s*r?\d+/i, // "2 * R150" (quantity * price)
+      /(\d+)\s+bloedlemoen/i, // "2 bloedlemoen"
+      /bloedlemoen\s+(\d+)/i, // "bloedlemoen 2"
+      // Look for multiple items pattern
+      /(\d+)\s*(750ml|gin|bottle)/i, // "2 750ml" or "2 gin"
+      // FVT specific patterns
+      /(\d+)\s*(pack|fvt|fever)/i, // "4 pack FVT" or "1 fever"
+      /fvt\s*(\d+)/i, // "FVT 4"
     ];
 
     for (const pattern of quantityPatterns) {
       const match = line.match(pattern);
       if (match) {
         const qty = parseInt(match[1], 10);
-        return qty > 0 ? qty : 1;
+        if (qty > 0 && qty <= 20) {
+          // Reasonable quantity limit
+          return qty;
+        }
+      }
+    }
+
+    // Additional check: if line contains multiple mentions of bloedlemoen
+    const bloedlemoenMatches = (line.toLowerCase().match(/bloedlemoen/g) || [])
+      .length;
+    if (bloedlemoenMatches > 1) {
+      return bloedlemoenMatches;
+    }
+
+    // Check for price patterns that might indicate multiple items
+    const priceMatches = line.match(/r?\d+[.,]\d{2}/gi);
+    if (priceMatches && priceMatches.length > 1) {
+      // If we see multiple prices, might be quantity indication
+      const firstPrice = parseFloat(priceMatches[0].replace(/[r,]/gi, ""));
+      const secondPrice = parseFloat(priceMatches[1].replace(/[r,]/gi, ""));
+
+      // If one price is a clean multiple of the other, that might be quantity
+      if (secondPrice > firstPrice && secondPrice % firstPrice === 0) {
+        return Math.round(secondPrice / firstPrice);
       }
     }
 
@@ -370,32 +608,38 @@ export default function Dashboard() {
   // Calculate points based on what was found
   const calculatePoints = (receiptInfo: {
     storeName: string | null;
-    bloedlemoenProducts: { name: string; quantity: number; line: string }[];
+    bloedlemoenProducts: {
+      name: string;
+      quantity: number;
+      line: string;
+      type: "bloedlemoen" | "fever-tree";
+      points: number;
+    }[];
     totalBottles: number;
+    totalFeverTreePacks: number;
     total: string | null;
     date: string | null;
     confidence: number;
   }) => {
     let points = 0;
 
-    // Base points for valid Bloedlemoen purchase
-    points += 30;
-
-    // Points per bottle (to encourage bulk purchases)
-    points += receiptInfo.totalBottles * 20;
+    // Calculate points from individual products
+    receiptInfo.bloedlemoenProducts.forEach((product) => {
+      points += product.points;
+    });
 
     // Bonus for recognized store
-    if (receiptInfo.storeName) points += 20;
+    if (receiptInfo.storeName) points += 10;
 
     // Bonus for high-confidence detection
-    if (receiptInfo.confidence >= 80) points += 25;
+    if (receiptInfo.confidence >= 80) points += 15;
 
     // Bonus for complete information
     if (receiptInfo.storeName && receiptInfo.total && receiptInfo.date) {
-      points += 15;
+      points += 10;
     }
 
-    return Math.min(points, 150); // Cap at 150 points per receipt
+    return points; // No cap - let points accumulate based on products
   };
 
   const handleLogout = () => {
@@ -483,19 +727,20 @@ export default function Dashboard() {
                 UPLOAD RECEIPT
               </CardTitle>
               <CardDescription className="text-sm">
-                Upload a clear image of your receipt to earn points
+                Upload receipts for Bloedlemoen Gin (100 pts/bottle) or Fever
+                Tree Tonic packs (50 pts/pack)
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 md:space-y-4">
               <div className="grid w-full items-center gap-1.5">
                 <Label htmlFor="receipt" className="text-sm">
-                  Receipt Image
+                  Receipt Image or PDF
                 </Label>
                 <div className="flex flex-col sm:flex-row items-center gap-2">
                   <Input
                     id="receipt"
                     type="file"
-                    accept="image/*"
+                    accept="image/*,.pdf"
                     ref={fileInputRef}
                     onChange={handleImageUpload}
                     disabled={uploading}
@@ -516,16 +761,7 @@ export default function Dashboard() {
               {uploading && (
                 <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                  Processing image with OCR...
-                </div>
-              )}
-
-              {ocrResult && (
-                <div className="space-y-2">
-                  <Label className="text-sm">OCR Result:</Label>
-                  <div className="bg-muted p-3 rounded-md text-xs md:text-sm max-h-32 overflow-y-auto">
-                    {ocrResult}
-                  </div>
+                  Processing receipt and detecting products...
                 </div>
               )}
             </CardContent>

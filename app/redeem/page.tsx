@@ -2,7 +2,7 @@
 
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -14,62 +14,158 @@ import {
 import { ArrowLeft, Gift, Lock } from "lucide-react";
 import Image from "next/image";
 
-// Mock rewards data - in a real app this would come from an API
+interface UserData {
+  id: string;
+  name: string | null;
+  email: string;
+  points: number;
+  totalEarned: number;
+  memberSince: string;
+}
+
+// Available rewards data
 const rewards = [
   {
     id: 1,
-    name: "Premium Gin Collection",
+    name: "Alkaline: Stackable Candle Holders (set of 2)",
     description:
-      "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
-    points: 350,
-    image: "/bloedlemoen-bottles.jpg",
-    category: "Premium",
+      "Elegant stackable candle holders in a selection of 4 colors. Perfect for creating ambient lighting.",
+    points: 100,
+    image: "/Landing-Page-Logo.png", // Using logo as placeholder
+    category: "Home Decor",
   },
   {
     id: 2,
-    name: "Bloedlemoen Gin Bottle",
+    name: "Alkaline: Stackable Candle Holders (set of 4)",
     description:
-      "A premium 750ml bottle of Bloedlemoen Gin with botanical notes",
+      "Complete set of 4 stackable candle holders in a selection of 4 colors. Create beautiful lighting arrangements.",
     points: 200,
-    image: "/Landing-Page-Bottle.png",
-    category: "Premium",
+    image: "/Landing-Page-Logo.png", // Using logo as placeholder
+    category: "Home Decor",
   },
   {
     id: 3,
-    name: "Bloedlemoen T-Shirt",
+    name: "Alkaline: Coasters (set of 4)",
     description:
-      "Official branded t-shirt in premium cotton with embroidered logo",
-    points: 100,
+      "Premium coasters in a selection of 2 colors. Protect your surfaces in style.",
+    points: 250,
     image: "/Landing-Page-Logo.png", // Using logo as placeholder
-    category: "Apparel",
+    category: "Home Decor",
   },
   {
     id: 4,
-    name: "Gin Tasting Experience",
+    name: "Alkaline: Coasters (set of 2)",
     description:
-      "Exclusive gin tasting session with our master distiller and premium cocktails",
-    points: 300,
-    image: "/Bloedlemoen-Gin-Serve-Gallery-1.jpg",
-    category: "Experience",
+      "Stylish coasters in a selection of 2 colors. Essential for any home bar setup.",
+    points: 150,
+    image: "/Landing-Page-Logo.png", // Using logo as placeholder
+    category: "Home Decor",
   },
   {
     id: 5,
-    name: "Cocktail Recipe Book",
+    name: "Okra: Dinner Candles, 40 cm (set of 2)",
     description:
-      "Digital recipe book with 25 premium cocktail recipes and mixing techniques",
-    points: 50,
+      "Elegant 40cm dinner candles in various colors. Perfect for special occasions and intimate dining.",
+    points: 100,
     image: "/Landing-Page-Logo.png", // Using logo as placeholder
-    category: "Digital",
+    category: "Candles",
+  },
+  {
+    id: 6,
+    name: "Okra: Everyday Candles (set of 4)",
+    description:
+      "Set of 4 everyday candles in various colors. Create a cozy atmosphere for any occasion.",
+    points: 200,
+    image: "/Landing-Page-Logo.png", // Using logo as placeholder
+    category: "Candles",
+  },
+  {
+    id: 7,
+    name: "Okra: GEAR LARGE",
+    description:
+      "Premium GEAR LARGE piece in various colors. A statement piece for modern living.",
+    points: 150,
+    image: "/Landing-Page-Logo.png", // Using logo as placeholder
+    category: "Home Accessories",
+  },
+  {
+    id: 8,
+    name: "Okra: Bead Candle Pent (set of 2)",
+    description:
+      "Unique bead candle pent set in various colors. Add artistic flair to your candle collection.",
+    points: 150,
+    image: "/Landing-Page-Logo.png", // Using logo as placeholder
+    category: "Candles",
+  },
+  {
+    id: 9,
+    name: "Bodega Mini Tumblers (set of 4)",
+    description:
+      "Premium mini tumblers perfect for spirits and cocktails. Essential for any home bar.",
+    points: 250,
+    image: "/Landing-Page-Logo.png", // Using logo as placeholder
+    category: "Barware",
+  },
+  {
+    id: 10,
+    name: "Mia Melange Placemats (set of 2)",
+    description:
+      "Elegant Mia Melange placemats to elevate your dining experience. Perfect for special occasions.",
+    points: 300,
+    image: "/Landing-Page-Logo.png", // Using logo as placeholder
+    category: "Table Setting",
+  },
+  {
+    id: 11,
+    name: "The Cotton Company Cocktail Napkins (set of 2)",
+    description:
+      "Premium smaller cocktail napkins from The Cotton Company. Perfect for elegant entertaining.",
+    points: 200,
+    image: "/Landing-Page-Logo.png", // Using logo as placeholder
+    category: "Table Setting",
+  },
+  {
+    id: 12,
+    name: "The Cotton Company Dinner Napkins (set of 2)",
+    description:
+      "Larger dinner napkins from The Cotton Company. Add sophistication to your dining table.",
+    points: 250,
+    image: "/Landing-Page-Logo.png", // Using logo as placeholder
+    category: "Table Setting",
   },
 ];
 
 export default function RedeemPage() {
   const { status } = useSession();
   const router = useRouter();
-  const [userPoints] = useState(150); // Mock user points - in real app would come from context/API
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [loadingData, setLoadingData] = useState(true);
   const [selectedReward, setSelectedReward] = useState<number | null>(null);
 
-  if (status === "loading") {
+  // Fetch user data on component mount
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const response = await fetch("/api/user/data");
+        if (response.ok) {
+          const data = await response.json();
+          setUserData(data.user);
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+      } finally {
+        setLoadingData(false);
+      }
+    };
+
+    if (status === "authenticated") {
+      fetchUserData();
+    } else if (status === "unauthenticated") {
+      setLoadingData(false);
+    }
+  }, [status]);
+
+  if (status === "loading" || loadingData) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
@@ -84,6 +180,8 @@ export default function RedeemPage() {
     router.push("/login");
     return null;
   }
+
+  const userPoints = userData?.points || 0;
 
   const handleSelectReward = (rewardId: number, requiredPoints: number) => {
     if (userPoints >= requiredPoints) {
@@ -155,7 +253,7 @@ export default function RedeemPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {rewards.map((reward) => {
                 const canAfford = userPoints >= reward.points;
                 const isSelected = selectedReward === reward.id;
@@ -163,7 +261,7 @@ export default function RedeemPage() {
                 return (
                   <Card
                     key={reward.id}
-                    className={`relative overflow-hidden transition-all duration-200 ${
+                    className={`relative overflow-hidden transition-all duration-200 h-full flex flex-col ${
                       !canAfford
                         ? "opacity-80 cursor-not-allowed"
                         : "hover:shadow-lg cursor-pointer"
@@ -183,8 +281,8 @@ export default function RedeemPage() {
                       </div>
                     )}
 
-                    {/* Reward Image */}
-                    <div className="aspect-square relative bg-muted">
+                    {/* Reward Image - Fixed height */}
+                    <div className="h-48 relative bg-muted flex-shrink-0">
                       <Image
                         src={reward.image}
                         alt={reward.name}
@@ -193,36 +291,43 @@ export default function RedeemPage() {
                       />
                     </div>
 
-                    {/* Reward Details */}
-                    <CardContent className="p-4">
-                      <div className="space-y-3">
-                        <div>
-                          <h3 className="font-heading text-sm md:text-base font-normal">
+                    {/* Reward Details - Flex grow to fill remaining space */}
+                    <CardContent className="p-4 flex flex-col flex-grow">
+                      <div className="flex flex-col h-full">
+                        {/* Title - Fixed height area */}
+                        <div className="mb-3">
+                          <h3 className="font-heading text-sm font-normal leading-tight line-clamp-2 min-h-[2.5rem] flex items-start">
                             {reward.name.toUpperCase()}
                           </h3>
-                          <p className="text-xs md:text-sm text-muted-foreground mt-1 leading-relaxed">
+                        </div>
+
+                        {/* Description - Fixed height area */}
+                        <div className="mb-4 flex-grow">
+                          <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3 min-h-[3rem]">
                             {reward.description}
                           </p>
                         </div>
 
-                        <div className="flex items-center justify-between">
+                        {/* Points and Category - Fixed height */}
+                        <div className="flex items-center justify-between mb-3 min-h-[1.5rem]">
                           <div className="flex items-center gap-1">
-                            <span className="font-bold text-primary">
+                            <span className="font-bold text-primary text-sm">
                               {reward.points} points
                             </span>
                           </div>
-                          <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                          <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded flex-shrink-0">
                             {reward.category}
                           </span>
                         </div>
 
+                        {/* Button - Fixed height */}
                         <Button
                           onClick={() =>
                             handleSelectReward(reward.id, reward.points)
                           }
                           disabled={!canAfford}
                           size="sm"
-                          className="w-full"
+                          className="w-full h-9"
                         >
                           {!canAfford ? (
                             <>
