@@ -58,6 +58,7 @@ model User {
   sessions      Session[]
   receipts      Receipt[]
   redemptions   Redemption[]
+  orders        Order[]
 
   @@map("users")
 }
@@ -111,20 +112,63 @@ model Redemption {
   id          String   @id @default(cuid())
   userId      String   @map("user_id")
   rewardId    String   @map("reward_id")
+  orderId     String?  @map("order_id") // Link to order for grouped redemptions
   pointsUsed  Int      @map("points_used")
+  quantity    Int      @default(1)
   status      RedemptionStatus @default(PENDING)
   redeemedAt  DateTime @default(now()) @map("redeemed_at")
   fulfilledAt DateTime? @map("fulfilled_at")
   
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   reward Reward @relation(fields: [rewardId], references: [id], onDelete: Cascade)
+  order  Order? @relation(fields: [orderId], references: [id], onDelete: SetNull)
 
   @@map("redemptions")
+}
+
+// New Order model for checkout system
+model Order {
+  id              String   @id @default(cuid())
+  userId          String   @map("user_id")
+  totalPoints     Int      @map("total_points")
+  status          OrderStatus @default(PENDING)
+  
+  // Delivery Address
+  deliveryName    String   @map("delivery_name")
+  deliveryEmail   String?  @map("delivery_email")
+  deliveryPhone   String?  @map("delivery_phone")
+  addressLine1    String   @map("address_line1")
+  addressLine2    String?  @map("address_line2")
+  city            String
+  province        String
+  postalCode      String   @map("postal_code")
+  country         String   @default("South Africa")
+  
+  // Timestamps
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  shippedAt       DateTime? @map("shipped_at")
+  deliveredAt     DateTime? @map("delivered_at")
+  
+  // Relations
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  redemptions  Redemption[]
+  
+  @@map("orders")
 }
 
 enum RedemptionStatus {
   PENDING
   FULFILLED
+  CANCELLED
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
   CANCELLED
 }
 

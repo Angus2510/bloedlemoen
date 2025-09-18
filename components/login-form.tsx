@@ -70,10 +70,10 @@ export function LoginForm({
 
               <div className="flex flex-col items-center text-center">
                 <h1 className="text-lg md:text-xl lg:text-2xl font-heading">
-                  WELCOME BACK
+                  YOUR REWARD AWAITS
                 </h1>
                 <p className="text-muted-foreground text-balance text-xs md:text-sm">
-                  Login to your Bloedlemoen Campaign account
+                  Log in, check points, redeem.
                 </p>
               </div>
               <div className="grid gap-1.5 md:gap-2">

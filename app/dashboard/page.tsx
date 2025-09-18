@@ -260,6 +260,19 @@ export default function Dashboard() {
       "Lines containing '+':",
       lines.filter((line) => line.includes("+"))
     );
+    // Special debug for the exact pattern you mentioned
+    console.log(
+      "Lines containing 'fever tree' (case insensitive):",
+      lines.filter((line) => /fever\s*tree/i.test(line))
+    );
+    console.log(
+      "Lines with bloedlemoen + fever tree combination:",
+      lines.filter(
+        (line) =>
+          /bloedlemoen.*fever.*tree/i.test(line) ||
+          /fever.*tree.*bloedlemoen/i.test(line)
+      )
+    );
     console.log("===============================");
 
     const receiptInfo = {
@@ -321,38 +334,48 @@ export default function Dashboard() {
     ];
 
     const feverTreePatterns = [
+      // Most specific patterns first - these should catch the exact case you mentioned
+      /fever\s+tree\s+tonic\s+water\s*\(pack\s+of\s+\d+\)/i, // "Fever Tree Tonic Water (Pack of 4)"
+      /free\s+fever\s+tree\s+tonic\s+water/i, // "FREE Fever Tree Tonic Water"
+      /\+\s*free\s+fever\s+tree/i, // "+ FREE Fever Tree"
+      /fever\s+tree\s+tonic\s+water/i, // "Fever Tree Tonic Water"
+
+      // Core Fever Tree patterns
+      /fever\s*tree/i, // Any "fever tree" mention
+      /fever.*tree/i, // "fever" followed by "tree" anywhere in line
+
       // Original patterns
       /fever\s*tree\s*tonic/i,
-      /fever\s*tree/i,
       /fvt\s*tonic/i,
       /fvt\s*200/i,
       /fvt\s*150\s*ml/i,
       /fvt\s*can/i,
       /fvt/i,
-      /fever.*tree/i,
       /tonic.*fever/i,
+
       // Enhanced patterns for bundle descriptions
       /free\s*fever\s*tree/i,
-      /fever\s*tree\s*tonic\s*water/i,
       /tonic\s*water.*fever/i,
-      /tonic\s*water.*pack/i,
       /fever.*tonic.*water/i,
       /fever.*tree.*water/i,
+
       // Pattern for when it's mentioned as part of a bundle
       /\+.*fever.*tree/i,
       /\+.*tonic.*water/i,
       /complimentary.*fever/i,
       /complimentary.*tonic/i,
+
       // Even more specific patterns for the exact case
-      /tonic\s*water/i, // Generic tonic water when in context
       /fever.*tree.*tonic.*water.*pack/i,
       /free.*tonic/i,
       /bonus.*tonic/i,
       /included.*tonic/i,
       /with.*tonic/i,
+
       // Pattern specifically for "Pack of X" format
       /fever.*tree.*pack\s*of/i,
       /tonic.*pack\s*of/i,
+      /tonic\s*water.*pack/i, // "tonic water" followed by "pack"
     ];
 
     // Track lines we've already processed to avoid duplicates
@@ -364,6 +387,11 @@ export default function Dashboard() {
 
       let hasBloedlemoen = false;
       let hasFeverTree = false;
+
+      // Special debug for lines containing "fever tree"
+      if (/fever.*tree/i.test(cleanLine)) {
+        console.log(`🔍 CHECKING LINE WITH FEVER TREE: "${cleanLine}"`);
+      }
 
       // Check for Bloedlemoen products
       for (const pattern of bloedlemoenPatterns) {
@@ -430,6 +458,18 @@ export default function Dashboard() {
 
           break; // Only match once per line for Fever Tree
         }
+      }
+
+      // Additional debug for lines that contain fever tree but didn't match
+      if (/fever.*tree/i.test(cleanLine) && !hasFeverTree) {
+        console.log(`❌ FEVER TREE LINE NOT MATCHED: "${cleanLine}"`);
+        console.log("Testing against patterns:");
+        feverTreePatterns.forEach((pattern, index) => {
+          const matches = pattern.test(cleanLine);
+          console.log(
+            `  Pattern ${index}: ${pattern} - ${matches ? "MATCH" : "no match"}`
+          );
+        });
       }
 
       // Mark line as processed only if we found something to avoid duplicate processing
@@ -538,15 +578,19 @@ export default function Dashboard() {
   ): "4-pack" | "8-pack" | "unknown" => {
     const lowerLine = line.toLowerCase();
 
-    // Check for explicit pack size mentions
+    // Check for explicit pack size mentions - most specific patterns first
     if (
       lowerLine.includes("pack of 4") ||
+      lowerLine.includes("(pack of 4)") ||
+      lowerLine.includes("pack 4") ||
       (lowerLine.includes("4") && lowerLine.includes("pack"))
     ) {
       return "4-pack";
     }
     if (
       lowerLine.includes("pack of 8") ||
+      lowerLine.includes("(pack of 8)") ||
+      lowerLine.includes("pack 8") ||
       (lowerLine.includes("8") && lowerLine.includes("pack"))
     ) {
       return "8-pack";

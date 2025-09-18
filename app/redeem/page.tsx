@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { ArrowLeft, Gift, Lock } from "lucide-react";
 import Image from "next/image";
 
@@ -29,108 +30,108 @@ const rewards = [
     id: 1,
     name: "Alkaline: Stackable Candle Holders (set of 2)",
     description:
-      "Elegant stackable candle holders in a selection of 4 colors. Perfect for creating ambient lighting.",
+      "Crafted to bring warmth and subtle dimension to your space. With gentle curves and a timeless silhouette, these holders fit effortlessly into any setting. Ideal for long lunches that turn into dinners, soft evenings or to simply enjoy the beauty of a well-placed flame. Whether holding a classic dinner candle or a soft tealight, each piece is made to adapt. Use them side by side or stack them for a bit of height to create a candlelit moment that feels considered and calm.",
     points: 100,
-    image: "/Landing-Page-Logo.png", // Using logo as placeholder
+    image: "/candle-holder-2.jpg", // Using logo as placeholder
     category: "Home Decor",
   },
   {
     id: 2,
     name: "Alkaline: Stackable Candle Holders (set of 4)",
     description:
-      "Complete set of 4 stackable candle holders in a selection of 4 colors. Create beautiful lighting arrangements.",
+      "Crafted to bring warmth and subtle dimension to your space. With gentle curves and a timeless silhouette, these holders fit effortlessly into any setting. Ideal for long lunches that turn into dinners, soft evenings or to simply enjoy the beauty of a well-placed flame. Whether holding a classic dinner candle or a soft tealight, each piece is made to adapt. Use them side by side or stack them for a bit of height to create a candlelit moment that feels considered and calm.",
     points: 200,
-    image: "/Landing-Page-Logo.png", // Using logo as placeholder
+    image: "/candle-holder-4.jpg", // Using logo as placeholder
     category: "Home Decor",
   },
   {
     id: 3,
     name: "Alkaline: Coasters (set of 4)",
     description:
-      "Premium coasters in a selection of 2 colors. Protect your surfaces in style.",
+      "Designed to complement the beauty of a classic Bloedlemoen G&T at golden hour. Each piece is thoughtfully cast in Jesmonite for a natural, stone-like feel, and finished with a subtle gloss to reflect just the right amount of light. Functional yet refined, these coasters are built to protect your surfaces with ease while adding a gentle pop of colour to your table. Whether you're gathering around the fire or setting the table for friends, they bring a calm, crafted elegance to every pour. Place your glass. Pause. Enjoy.",
     points: 250,
-    image: "/Landing-Page-Logo.png", // Using logo as placeholder
+    image: "/coasters-2.jpg", // Using logo as placeholder
     category: "Home Decor",
   },
   {
     id: 4,
     name: "Alkaline: Coasters (set of 2)",
     description:
-      "Stylish coasters in a selection of 2 colors. Essential for any home bar setup.",
+      "Designed to complement the beauty of a classic Bloedlemoen G&T at golden hour. Each piece is thoughtfully cast in Jesmonite for a natural, stone-like feel, and finished with a subtle gloss to reflect just the right amount of light. Functional yet refined, these coasters are built to protect your surfaces with ease while adding a gentle pop of colour to your table. Whether you're gathering around the fire or setting the table for friends, they bring a calm, crafted elegance to every pour. Place your glass. Pause. Enjoy.",
     points: 150,
-    image: "/Landing-Page-Logo.png", // Using logo as placeholder
+    image: "/coasters-4.jpg", // Using logo as placeholder
     category: "Home Decor",
   },
   {
     id: 5,
     name: "Okra: Dinner Candles, 40 cm (set of 2)",
     description:
-      "Elegant 40cm dinner candles in various colors. Perfect for special occasions and intimate dining.",
+      "Designed to bring a warm, steady glow to your table as the light begins to fade. Whether it's sundowners on the patio or a long dinner that stretches long into the night, this classic set of dinner candles will set the tone with quiet elegance. Offering extended burn time for those special occasions.",
     points: 100,
-    image: "/Landing-Page-Logo.png", // Using logo as placeholder
+    image: "/Okra-2.jpg", // Using logo as placeholder
     category: "Candles",
   },
   {
     id: 6,
     name: "Okra: Everyday Candles (set of 4)",
     description:
-      "Set of 4 everyday candles in various colors. Create a cozy atmosphere for any occasion.",
+      "This practical candle offers long-lasting light. The kind that turns an ordinary evening into something golden. Pair its steady glow with the clink of ice, a splash of Bloedlemoen Gin and good company. Suddenly, time slows down, shadows dance and everything feels just right. Designed for life's quieter, finer moments.",
     points: 200,
-    image: "/Landing-Page-Logo.png", // Using logo as placeholder
+    image: "/Okra-4.jpg", // Using logo as placeholder
     category: "Candles",
   },
   {
     id: 7,
     name: "Okra: GEAR LARGE",
     description:
-      "Premium GEAR LARGE piece in various colors. A statement piece for modern living.",
+      "With bold, gear inspired ridges and a clean tapered form, this large sculptural candle is made to be noticed and admired. It's more than just a source of light, it's an atmosphere setter, a conversation starter and the perfect companion to a well poured Bloedlemoen G&T. Designed for slow evenings and beautiful settings.",
     points: 150,
-    image: "/Landing-Page-Logo.png", // Using logo as placeholder
+    image: "/Okra-1-gear.jpg", // Using logo as placeholder
     category: "Home Accessories",
   },
   {
     id: 8,
     name: "Okra: Bead Candle Pent (set of 2)",
     description:
-      "Unique bead candle pent set in various colors. Add artistic flair to your candle collection.",
+      "With its bold beaded form and warm, ambient glow, the Bead Pent Candle is designed to elevate your space. Sculptural and striking, it brings a sense of calm and quiet drama to any setting. Best enjoyed with a Bloedlemoen in hand and no real rush to be anywhere.",
     points: 150,
-    image: "/Landing-Page-Logo.png", // Using logo as placeholder
+    image: "/Okra-bead-2.jpg", // Using logo as placeholder
     category: "Candles",
   },
   {
     id: 9,
     name: "Bodega Mini Tumblers (set of 4)",
     description:
-      "Premium mini tumblers perfect for spirits and cocktails. Essential for any home bar.",
+      "This set of mini tumblers is the kind you reach for when the Bloedlemoen comes out. Clean lines and tough tempered glass make them a practical favourite. Unfussy, durable and ready for anything. From relaxed drinks on the patio to Bloedlemoen cocktails shared across a long table, these are the glasses that keep the good times going. Just add ice. A splash of Bloedlemoen. And whoever makes you laugh the loudest.",
     points: 250,
-    image: "/Landing-Page-Logo.png", // Using logo as placeholder
+    image: "/tumblers.jpg", // Using logo as placeholder
     category: "Barware",
   },
   {
     id: 10,
     name: "Mia Melange Placemats (set of 2)",
     description:
-      "Elegant Mia Melange placemats to elevate your dining experience. Perfect for special occasions.",
+      "For tables that tell stories. Beautifully handcrafted placemats designed to bring a touch of natural elegance to your table setting. Easygoing, unfussed and full of charm. Whether it's a midweek meal or a long lunch with friends, this is the kind of detail that draws people in without saying a word. Set the table. Pour the Bloedlemoen. Stay a while.",
     points: 300,
-    image: "/Landing-Page-Logo.png", // Using logo as placeholder
+    image: "/place-mats.jpg", // Using logo as placeholder
     category: "Table Setting",
   },
   {
     id: 11,
     name: "The Cotton Company Cocktail Napkins (set of 2)",
     description:
-      "Premium smaller cocktail napkins from The Cotton Company. Perfect for elegant entertaining.",
+      "Designed to do more than catch a drip, they complete the moment. Neatly placed under a freshly mixed Bloedlemoen cocktail, adding layers of texture, colour and glam. Woven with care and styled to suit both casual gatherings and more refined affairs, these napkins bring a gentle elegance to every glass.",
     points: 200,
-    image: "/Landing-Page-Logo.png", // Using logo as placeholder
+    image: "/napkin-2.jpg", // Using logo as placeholder
     category: "Table Setting",
   },
   {
     id: 12,
     name: "The Cotton Company Dinner Napkins (set of 2)",
     description:
-      "Larger dinner napkins from The Cotton Company. Add sophistication to your dining table.",
+      "These traditionally woven dinner napkins bring a relaxed, effortless and refined feel to any gathering. Whether it's a slow afternoon lunch or an evening of shared plates with a Bloedlemoen cocktail in hand, it'll add just the right touch of texture and charm.",
     points: 250,
-    image: "/Landing-Page-Logo.png", // Using logo as placeholder
+    image: "/napkin-2.jpg", // Using logo as placeholder
     category: "Table Setting",
   },
 ];
@@ -140,7 +141,9 @@ export default function RedeemPage() {
   const router = useRouter();
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loadingData, setLoadingData] = useState(true);
-  const [selectedReward, setSelectedReward] = useState<number | null>(null);
+  const [selectedRewards, setSelectedRewards] = useState<{
+    [key: number]: number;
+  }>({}); // reward id -> quantity
 
   // Fetch user data on component mount
   useEffect(() => {
@@ -183,15 +186,95 @@ export default function RedeemPage() {
 
   const userPoints = userData?.points || 0;
 
-  const handleSelectReward = (rewardId: number, requiredPoints: number) => {
-    if (userPoints >= requiredPoints) {
-      setSelectedReward(rewardId);
-      // Here you would typically call an API to process the redemption
-      alert(
-        `Reward selected! You would redeem this for ${requiredPoints} points.`
+  const handleQuantityChange = (rewardId: number, change: number) => {
+    setSelectedRewards((prev) => {
+      const currentQty = prev[rewardId] || 0;
+      const newQty = Math.max(0, currentQty + change);
+
+      // Calculate what the total would be with this change
+      const tempSelected = { ...prev };
+      if (newQty === 0) {
+        delete tempSelected[rewardId];
+      } else {
+        tempSelected[rewardId] = newQty;
+      }
+
+      // Calculate total points with the proposed change
+      const proposedTotal = Object.entries(tempSelected).reduce(
+        (total, [id, quantity]) => {
+          const reward = rewards.find((r) => r.id === parseInt(id));
+          return total + (reward ? reward.points * quantity : 0);
+        },
+        0
       );
-    }
+
+      // Only allow the change if user has enough points
+      if (proposedTotal > userPoints) {
+        alert(
+          `Cannot add more items. You would need ${proposedTotal} points but only have ${userPoints} points.`
+        );
+        return prev; // Return unchanged state
+      }
+
+      if (newQty === 0) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { [rewardId]: _, ...rest } = prev;
+        return rest;
+      }
+
+      return { ...prev, [rewardId]: newQty };
+    });
   };
+
+  const getTotalSelectedPoints = () => {
+    return Object.entries(selectedRewards).reduce(
+      (total, [rewardId, quantity]) => {
+        const reward = rewards.find((r) => r.id === parseInt(rewardId));
+        return total + (reward ? reward.points * quantity : 0);
+      },
+      0
+    );
+  };
+
+  const getSelectedItemsForCheckout = () => {
+    return Object.entries(selectedRewards).map(([rewardId, quantity]) => {
+      const reward = rewards.find((r) => r.id === parseInt(rewardId))!;
+      return {
+        id: reward.id,
+        name: reward.name,
+        points: reward.points,
+        quantity: quantity,
+        category: reward.category,
+      };
+    });
+  };
+
+  const handleCheckout = () => {
+    const selectedItems = getSelectedItemsForCheckout();
+    const totalPoints = getTotalSelectedPoints();
+
+    if (selectedItems.length === 0) {
+      alert("Please select at least one reward to checkout.");
+      return;
+    }
+
+    if (totalPoints > userPoints) {
+      alert(
+        `You need ${totalPoints} points but only have ${userPoints} points.`
+      );
+      return;
+    }
+
+    // Navigate to checkout with selected items
+    const itemsParam = encodeURIComponent(JSON.stringify(selectedItems));
+    router.push(`/checkout?items=${itemsParam}`);
+  };
+
+  const totalSelectedPoints = getTotalSelectedPoints();
+  const selectedItemsCount = Object.values(selectedRewards).reduce(
+    (sum, qty) => sum + qty,
+    0
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -232,6 +315,16 @@ export default function RedeemPage() {
                 </span>
               </p>
             </div>
+            {totalSelectedPoints > 0 && (
+              <div className="p-3 bg-primary text-primary-foreground border border-primary min-w-[160px] h-[60px] flex items-center justify-center">
+                <p className="text-sm font-medium text-center">
+                  Cart Total:{" "}
+                  <span className="font-bold text-lg">
+                    {totalSelectedPoints}
+                  </span>
+                </p>
+              </div>
+            )}
             <button
               onClick={() => {
                 window.open("https://shop.bloedlemoengin.com/", "_blank");
@@ -241,6 +334,39 @@ export default function RedeemPage() {
               EARN MORE POINTS
             </button>
           </div>
+
+          {/* Point usage indicator */}
+          {totalSelectedPoints > 0 && (
+            <div className="mt-4 max-w-md mx-auto">
+              <div className="flex justify-between text-sm mb-2">
+                <span>Points Used</span>
+                <span>
+                  {totalSelectedPoints} / {userPoints}
+                </span>
+              </div>
+              <div className="bg-muted rounded-full h-3">
+                <div
+                  className={`h-3 rounded-full transition-all duration-300 ${
+                    totalSelectedPoints > userPoints
+                      ? "bg-red-500"
+                      : "bg-primary"
+                  }`}
+                  style={{
+                    width: `${Math.min(
+                      (totalSelectedPoints / userPoints) * 100,
+                      100
+                    )}%`,
+                  }}
+                ></div>
+              </div>
+              {totalSelectedPoints > userPoints && (
+                <p className="text-red-600 text-xs mt-1 font-medium">
+                  ⚠️ Exceeds available points by{" "}
+                  {totalSelectedPoints - userPoints}
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         <Card>
@@ -256,7 +382,11 @@ export default function RedeemPage() {
             <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {rewards.map((reward) => {
                 const canAfford = userPoints >= reward.points;
-                const isSelected = selectedReward === reward.id;
+                const currentQuantity = selectedRewards[reward.id] || 0;
+                const isSelected = currentQuantity > 0;
+                const totalSelectedPoints = getTotalSelectedPoints();
+                const remainingPoints = userPoints - totalSelectedPoints;
+                const canAddMore = remainingPoints >= reward.points;
 
                 return (
                   <Card
@@ -275,7 +405,11 @@ export default function RedeemPage() {
                         </div>
                         <div className="absolute bottom-4 left-4 right-4 bg-background/90 backdrop-blur-sm p-2 rounded text-center">
                           <p className="text-xs text-muted-foreground font-medium">
-                            Need {reward.points - userPoints} more points
+                            Need {Math.ceil((reward.points - userPoints) / 100)}{" "}
+                            more bottle
+                            {Math.ceil((reward.points - userPoints) / 100) !== 1
+                              ? "s"
+                              : ""}
                           </p>
                         </div>
                       </div>
@@ -303,9 +437,11 @@ export default function RedeemPage() {
 
                         {/* Description - Fixed height area */}
                         <div className="mb-4 flex-grow">
-                          <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3 min-h-[3rem]">
-                            {reward.description}
-                          </p>
+                          <ScrollArea className="h-[4.5rem]">
+                            <p className="text-xs text-muted-foreground leading-relaxed pr-3">
+                              {reward.description}
+                            </p>
+                          </ScrollArea>
                         </div>
 
                         {/* Points and Category - Fixed height */}
@@ -320,35 +456,116 @@ export default function RedeemPage() {
                           </span>
                         </div>
 
-                        {/* Button - Fixed height */}
-                        <Button
-                          onClick={() =>
-                            handleSelectReward(reward.id, reward.points)
-                          }
-                          disabled={!canAfford}
-                          size="sm"
-                          className="w-full h-9"
-                        >
-                          {!canAfford ? (
-                            <>
-                              <Lock className="size-4 mr-2" />
-                              LOCKED
-                            </>
-                          ) : isSelected ? (
-                            "SELECTED"
-                          ) : (
-                            <>
-                              <Gift className="size-4 mr-2" />
-                              SELECT
-                            </>
-                          )}
-                        </Button>
+                        {/* Point availability warning */}
+                        {canAfford && isSelected && !canAddMore && (
+                          <div className="mb-2 text-xs text-amber-600 bg-amber-50 dark:bg-amber-900/20 p-2 rounded">
+                            Only {Math.floor(remainingPoints / reward.points)}{" "}
+                            more can be added
+                          </div>
+                        )}
+
+                        {/* Quantity Controls or Add Button */}
+                        {canAfford && isSelected ? (
+                          <div className="flex items-center justify-between">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                handleQuantityChange(reward.id, -1)
+                              }
+                              className="h-8 w-8 p-0"
+                            >
+                              -
+                            </Button>
+                            <span className="mx-3 font-medium">
+                              Qty: {currentQuantity}
+                            </span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleQuantityChange(reward.id, 1)}
+                              className="h-8 w-8 p-0"
+                              disabled={!canAddMore}
+                              title={
+                                !canAddMore
+                                  ? "Not enough points remaining"
+                                  : "Add one more"
+                              }
+                            >
+                              +
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button
+                            onClick={() => handleQuantityChange(reward.id, 1)}
+                            disabled={
+                              !canAfford || (!isSelected && !canAddMore)
+                            }
+                            size="sm"
+                            className="w-full h-9"
+                            title={
+                              !canAfford
+                                ? "Not enough points"
+                                : !canAddMore
+                                ? "Not enough points remaining"
+                                : "Add to cart"
+                            }
+                          >
+                            {!canAfford ? (
+                              <>
+                                <Lock className="size-4 mr-2" />
+                                LOCKED
+                              </>
+                            ) : !canAddMore ? (
+                              <>
+                                <Lock className="size-4 mr-2" />
+                                INSUFFICIENT POINTS
+                              </>
+                            ) : (
+                              <>
+                                <Gift className="size-4 mr-2" />
+                                ADD TO CART
+                              </>
+                            )}
+                          </Button>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
                 );
               })}
             </div>
+
+            {/* Checkout Section */}
+            {selectedItemsCount > 0 && (
+              <div className="mt-6 p-4 bg-card border rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-heading text-lg">CART SUMMARY</p>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedItemsCount} item
+                      {selectedItemsCount !== 1 ? "s" : ""} selected
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold text-lg text-primary">
+                      {totalSelectedPoints} points
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {userPoints - totalSelectedPoints} points remaining
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  onClick={handleCheckout}
+                  className="w-full mt-4"
+                  size="lg"
+                  disabled={totalSelectedPoints > userPoints}
+                >
+                  PROCEED TO CHECKOUT
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </main>
