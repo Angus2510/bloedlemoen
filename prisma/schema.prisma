@@ -78,6 +78,7 @@ model Receipt {
   userId          String   @map("user_id")
   imagePath       String   @map("image_path")
   ocrText         String?  @map("ocr_text") @db.Text
+  receiptHash     String?  @map("receipt_hash") // Hash of OCR text to detect duplicates
   storeName       String?  @map("store_name")
   totalAmount     Float?   @map("total_amount")
   detectedItems   String[] @map("detected_items")
@@ -88,6 +89,7 @@ model Receipt {
   
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([receiptHash]) // Index for fast duplicate checking
   @@map("receipts")
 }
 

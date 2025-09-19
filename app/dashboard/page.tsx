@@ -1,49 +1,63 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
+  CardDescription,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Upload, Camera, LogOut } from "lucide-react";
-import { createWorker } from "tesseract.js";
+import { Camera, LogOut, Upload } from "lucide-react";
 import Image from "next/image";
+import Tesseract from "tesseract.js";
 
-interface UserData {
-  id: string;
-  name: string | null;
-  email: string;
+// Essential interfaces for product detection
+interface Product {
+  name: string;
+  quantity: number;
+  line: string;
+  type: "bloedlemoen" | "fever-tree";
   points: number;
-  totalEarned: number;
-  memberSince: string;
 }
 
-interface ActivityItem {
-  id: string;
-  type: string;
-  description: string;
-  points: number;
-  items: string[];
-  verified: boolean;
-  date: string;
+interface ReceiptInfo {
+  isValid: boolean;
+  storeName: string | null;
+  bloedlemoenProducts: Product[];
+  total: string | null;
+  confidence: number;
+  totalBottles: number;
+  totalFeverTreePacks: number;
+  date: string | null;
 }
 
-export default function Dashboard() {
-  const { data: session, status } = useSession();
+export default function DashboardPage() {
+  const { data: session } = useSession();
   const router = useRouter();
-  const [userData, setUserData] = useState<UserData | null>(null);
-  const [recentActivity, setRecentActivity] = useState<ActivityItem[]>([]);
-  const [uploading, setUploading] = useState(false);
-  const [loadingData, setLoadingData] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [uploading, setUploading] = useState(false);
+  const [userData, setUserData] = useState<{
+    points: number;
+    total_earned: number;
+  } | null>(null);
+  const [recentActivity, setRecentActivity] = useState<
+    Array<{
+      id: string;
+      type: string;
+      description: string;
+      points: number;
+      items: string[];
+      verified: boolean;
+      date: string;
+    }>
+  >([]);
 
   // Fetch user data on component mount
   useEffect(() => {
@@ -53,21 +67,19 @@ export default function Dashboard() {
         if (response.ok) {
           const data = await response.json();
           setUserData(data.user);
-          setRecentActivity(data.recentActivity);
+          setRecentActivity(data.recentActivity || []);
         }
       } catch (error) {
-        console.error("Error fetching user data:", error);
-      } finally {
-        setLoadingData(false);
+        console.error("Failed to fetch user data:", error);
       }
     };
 
-    if (session?.user) {
+    if (session) {
       fetchUserData();
     }
   }, [session]);
 
-  // Function to save receipt data to database
+  // Save receipt to database
   const saveReceiptToDatabase = async (receiptData: {
     ocrText: string;
     storeName: string | null;
@@ -81,47 +93,41 @@ export default function Dashboard() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(receiptData),
+        body: JSON.stringify({
+          ocrText: receiptData.ocrText,
+          storeName: receiptData.storeName,
+          totalAmount: receiptData.totalAmount,
+          detectedItems: receiptData.detectedItems,
+          pointsEarned: receiptData.pointsEarned,
+          isVerified: true,
+          verifiedAt: new Date().toISOString(),
+        }),
       });
 
       if (response.ok) {
         const result = await response.json();
-        // Update user points and refresh activity
-        setUserData((prev) =>
-          prev ? { ...prev, points: result.newPointsBalance } : null
-        );
 
-        // Refresh recent activity
+        // Refresh user data
         const userResponse = await fetch("/api/user/data");
         if (userResponse.ok) {
-          const data = await userResponse.json();
-          setRecentActivity(data.recentActivity);
+          const userData = await userResponse.json();
+          setUserData(userData.user);
+          setRecentActivity(userData.recentActivity || []);
         }
 
         return result;
+      } else {
+        const errorData = await response.json();
+        console.error("Failed to save receipt:", errorData);
+        return null;
       }
     } catch (error) {
       console.error("Error saving receipt:", error);
+      return null;
     }
-    return null;
   };
 
-  if (status === "loading" || loadingData) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (status === "unauthenticated") {
-    router.push("/login");
-    return null;
-  }
-
+  // Enhanced OCR processing with improved bundle detection
   const handleImageUpload = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -133,6 +139,7 @@ export default function Dashboard() {
     try {
       let extractedText = "";
 
+      // Handle different file types
       if (file.type === "application/pdf") {
         // Handle PDF files
         const arrayBuffer = await file.arrayBuffer();
@@ -159,15 +166,15 @@ export default function Dashboard() {
         }
       } else {
         // Handle image files with OCR
-        const worker = await createWorker("eng");
         const {
           data: { text },
-        } = await worker.recognize(file);
-        await worker.terminate();
+        } = await Tesseract.recognize(file, "eng", {
+          logger: (m) => console.log("OCR:", m),
+        });
         extractedText = text;
       }
 
-      // Enhanced receipt validation with specific search criteria
+      // Enhanced receipt validation with bundle detection
       const receiptInfo = analyzeReceipt(extractedText);
 
       if (receiptInfo.isValid) {
@@ -227,53 +234,17 @@ export default function Dashboard() {
     }
   };
 
-  // Enhanced receipt analysis function
-  const analyzeReceipt = (text: string) => {
+  // Enhanced receipt analysis function with bundle detection
+  const analyzeReceipt = (text: string): ReceiptInfo => {
     const lowerText = text.toLowerCase();
     const lines = text
       .split("\n")
       .map((line) => line.trim())
       .filter((line) => line.length > 0);
 
-    // Debug logging
     console.log("=== RECEIPT ANALYSIS DEBUG ===");
     console.log("Full text length:", text.length);
     console.log("Number of lines:", lines.length);
-    console.log("First 5 lines:", lines.slice(0, 5));
-    console.log(
-      "Lines containing 'fever':",
-      lines.filter((line) => line.toLowerCase().includes("fever"))
-    );
-    console.log(
-      "Lines containing 'tonic':",
-      lines.filter((line) => line.toLowerCase().includes("tonic"))
-    );
-    console.log(
-      "Lines containing 'pack':",
-      lines.filter((line) => line.toLowerCase().includes("pack"))
-    );
-    console.log(
-      "Lines containing 'free':",
-      lines.filter((line) => line.toLowerCase().includes("free"))
-    );
-    console.log(
-      "Lines containing '+':",
-      lines.filter((line) => line.includes("+"))
-    );
-    // Special debug for the exact pattern you mentioned
-    console.log(
-      "Lines containing 'fever tree' (case insensitive):",
-      lines.filter((line) => /fever\s*tree/i.test(line))
-    );
-    console.log(
-      "Lines with bloedlemoen + fever tree combination:",
-      lines.filter(
-        (line) =>
-          /bloedlemoen.*fever.*tree/i.test(line) ||
-          /fever.*tree.*bloedlemoen/i.test(line)
-      )
-    );
-    console.log("===============================");
 
     const receiptInfo = {
       isValid: false,
@@ -292,7 +263,7 @@ export default function Dashboard() {
       confidence: 0,
     };
 
-    // 1. Search for store names (add more as needed)
+    // 1. Search for store names
     const validStores = [
       "makro",
       "shoprite",
@@ -323,158 +294,78 @@ export default function Dashboard() {
       }
     }
 
-    // 2. Search for Bloedlemoen Gin variations and Fever Tree Tonic
-    const bloedlemoenPatterns = [
-      /bloedlemoen\s*gin/i,
-      /bloedlemoen\s*750ml/i,
-      /bloedlemoen\s*bottle/i,
-      /bloedlemoen\s*premium/i,
-      /bloedlemoen\s*blood\s*orange/i,
-      /bloedlemoen/i,
-    ];
-
-    const feverTreePatterns = [
-      // Most specific patterns first - these should catch the exact case you mentioned
-      /fever\s+tree\s+tonic\s+water\s*\(pack\s+of\s+\d+\)/i, // "Fever Tree Tonic Water (Pack of 4)"
-      /free\s+fever\s+tree\s+tonic\s+water/i, // "FREE Fever Tree Tonic Water"
-      /\+\s*free\s+fever\s+tree/i, // "+ FREE Fever Tree"
-      /fever\s+tree\s+tonic\s+water/i, // "Fever Tree Tonic Water"
-
-      // Core Fever Tree patterns
-      /fever\s*tree/i, // Any "fever tree" mention
-      /fever.*tree/i, // "fever" followed by "tree" anywhere in line
-
-      // Original patterns
-      /fever\s*tree\s*tonic/i,
-      /fvt\s*tonic/i,
-      /fvt\s*200/i,
-      /fvt\s*150\s*ml/i,
-      /fvt\s*can/i,
-      /fvt/i,
-      /tonic.*fever/i,
-
-      // Enhanced patterns for bundle descriptions
-      /free\s*fever\s*tree/i,
-      /tonic\s*water.*fever/i,
-      /fever.*tonic.*water/i,
-      /fever.*tree.*water/i,
-
-      // Pattern for when it's mentioned as part of a bundle
-      /\+.*fever.*tree/i,
-      /\+.*tonic.*water/i,
-      /complimentary.*fever/i,
-      /complimentary.*tonic/i,
-
-      // Even more specific patterns for the exact case
-      /fever.*tree.*tonic.*water.*pack/i,
-      /free.*tonic/i,
-      /bonus.*tonic/i,
-      /included.*tonic/i,
-      /with.*tonic/i,
-
-      // Pattern specifically for "Pack of X" format
-      /fever.*tree.*pack\s*of/i,
-      /tonic.*pack\s*of/i,
-      /tonic\s*water.*pack/i, // "tonic water" followed by "pack"
-    ];
-
-    // Track lines we've already processed to avoid duplicates
-    const processedLines = new Set();
+    // 2. PRODUCT DETECTION: Look for both bundles and individual products
+    const processedLines = new Set<string>();
 
     for (const line of lines) {
-      const cleanLine = line.trim();
-      if (cleanLine.length < 3) continue;
+      const cleanLine = line.trim().toLowerCase();
 
-      let hasBloedlemoen = false;
-      let hasFeverTree = false;
+      // Skip if already processed
+      if (processedLines.has(cleanLine)) continue;
 
-      // Special debug for lines containing "fever tree"
-      if (/fever.*tree/i.test(cleanLine)) {
-        console.log(`🔍 CHECKING LINE WITH FEVER TREE: "${cleanLine}"`);
-      }
+      // BUNDLE DETECTION: Look for Bloedlemoen + FREE Fever Tree combination
+      const hasBloedlemoen = /bloedlemoen/i.test(cleanLine);
+      const hasFree = /free/i.test(cleanLine);
+      const hasFeverTree = /fever.*tree/i.test(cleanLine);
 
-      // Check for Bloedlemoen products
-      for (const pattern of bloedlemoenPatterns) {
-        if (pattern.test(cleanLine)) {
-          console.log(
-            `🍾 BLOEDLEMOEN FOUND: "${cleanLine}" matched pattern: ${pattern}`
-          );
-          const quantity = extractQuantity(cleanLine);
-          console.log(`   Quantity: ${quantity}`);
+      if (hasBloedlemoen && hasFree && hasFeverTree) {
+        console.log(`🎯 BUNDLE DETECTED: "${line}"`);
 
-          const product = {
-            name: cleanLine,
-            quantity: quantity,
-            line: cleanLine,
-            type: "bloedlemoen" as const,
-            points: 100 * quantity, // 100 points per bottle
-          };
+        // Extract quantity from line (default to 1)
+        const quantityMatch = cleanLine.match(
+          /(\d+)\s*x|\b(\d+)\s+bloedlemoen/
+        );
+        const quantity = quantityMatch
+          ? parseInt(quantityMatch[1] || quantityMatch[2])
+          : 1;
 
-          receiptInfo.bloedlemoenProducts.push(product);
-          receiptInfo.totalBottles += quantity;
-          hasBloedlemoen = true;
-
-          // Higher confidence for direct "bloedlemoen gin" match
-          if (/bloedlemoen\s*gin/i.test(cleanLine)) {
-            receiptInfo.confidence += 50;
-          } else if (/bloedlemoen\s*(750ml|bottle|premium)/i.test(cleanLine)) {
-            receiptInfo.confidence += 40;
-          } else {
-            receiptInfo.confidence += 30;
-          }
-
-          break; // Only match once per line for Bloedlemoen
-        }
-      }
-
-      // Check for Fever Tree Tonic products (can be in the same line as Bloedlemoen)
-      for (const pattern of feverTreePatterns) {
-        if (pattern.test(cleanLine)) {
-          console.log(
-            `🥤 FEVER TREE FOUND: "${cleanLine}" matched pattern: ${pattern}`
-          );
-          const quantity = extractFeverTreeQuantity(cleanLine);
-          const packType = detectFeverTreePackType(cleanLine);
-          console.log(`   Quantity: ${quantity}, Pack type: ${packType}`);
-
-          const product = {
-            name: cleanLine,
-            quantity: quantity,
-            line: cleanLine,
-            type: "fever-tree" as const,
-            points: 50 * quantity, // 50 points per pack (4-pack or 8-pack)
-          };
-
-          receiptInfo.bloedlemoenProducts.push(product);
-          receiptInfo.totalFeverTreePacks += quantity;
-          hasFeverTree = true;
-
-          // Confidence based on pack type detection
-          if (packType === "4-pack" || packType === "8-pack") {
-            receiptInfo.confidence += 40;
-          } else {
-            receiptInfo.confidence += 25;
-          }
-
-          break; // Only match once per line for Fever Tree
-        }
-      }
-
-      // Additional debug for lines that contain fever tree but didn't match
-      if (/fever.*tree/i.test(cleanLine) && !hasFeverTree) {
-        console.log(`❌ FEVER TREE LINE NOT MATCHED: "${cleanLine}"`);
-        console.log("Testing against patterns:");
-        feverTreePatterns.forEach((pattern, index) => {
-          const matches = pattern.test(cleanLine);
-          console.log(
-            `  Pattern ${index}: ${pattern} - ${matches ? "MATCH" : "no match"}`
-          );
+        receiptInfo.bloedlemoenProducts.push({
+          name: "1 Bloedlemoen Amber 750ml + FREE Fever Tree Tonic Water (Pack of 4)",
+          quantity: quantity,
+          line: line.trim(),
+          type: "bloedlemoen", // Bundle is primarily a Bloedlemoen product
+          points: 150 * quantity, // EXACTLY 150 points per bundle
         });
-      }
 
-      // Mark line as processed only if we found something to avoid duplicate processing
-      if (hasBloedlemoen || hasFeverTree) {
+        receiptInfo.totalBottles += quantity;
+        receiptInfo.confidence += 50;
         processedLines.add(cleanLine);
+
+        console.log(
+          `✅ Bundle added: ${quantity}x 150 points = ${
+            150 * quantity
+          } total points`
+        );
+      }
+      // INDIVIDUAL BLOEDLEMOEN DETECTION (if not part of bundle)
+      else if (hasBloedlemoen) {
+        console.log(`🍾 INDIVIDUAL BLOEDLEMOEN DETECTED: "${line}"`);
+
+        // Extract quantity from line (default to 1)
+        const quantityMatch = cleanLine.match(
+          /(\d+)\s*x|\b(\d+)\s+bloedlemoen|(\d+)\s*bloedlemoen/
+        );
+        const quantity = quantityMatch
+          ? parseInt(quantityMatch[1] || quantityMatch[2] || quantityMatch[3])
+          : 1;
+
+        receiptInfo.bloedlemoenProducts.push({
+          name: `Bloedlemoen Gin 750ml`,
+          quantity: quantity,
+          line: line.trim(),
+          type: "bloedlemoen",
+          points: 100 * quantity, // 100 points per individual bottle
+        });
+
+        receiptInfo.totalBottles += quantity;
+        receiptInfo.confidence += 40;
+        processedLines.add(cleanLine);
+
+        console.log(
+          `✅ Individual Bloedlemoen added: ${quantity}x 100 points = ${
+            100 * quantity
+          } total points`
+        );
       }
     }
 
@@ -523,7 +414,6 @@ export default function Dashboard() {
       receiptInfo.bloedlemoenProducts.length > 0 &&
       (receiptInfo.totalBottles > 0 || receiptInfo.totalFeverTreePacks > 0);
 
-    // Final debug summary
     console.log("=== FINAL ANALYSIS RESULTS ===");
     console.log("Total Bloedlemoen bottles:", receiptInfo.totalBottles);
     console.log("Total Fever Tree packs:", receiptInfo.totalFeverTreePacks);
@@ -542,144 +432,6 @@ export default function Dashboard() {
     console.log("===============================");
 
     return receiptInfo;
-  };
-
-  // Extract quantity for Fever Tree products
-  const extractFeverTreeQuantity = (line: string): number => {
-    const feverTreeQuantityPatterns = [
-      /^(\d+)\s*x\s/i, // "2 x FVT"
-      /^(\d+)\s+/i, // "2 FVT" at start
-      /(\d+)\s*pack/i, // "4 pack"
-      /pack\s*of\s*(\d+)/i, // "Pack of 4" - NEW PATTERN
-      /(\d+)\s*@/i, // "1 @ R50"
-      /(\d+)\s*\*/i, // "1 * R50"
-      /qty[:\s]*(\d+)/i, // "Qty: 1"
-      /\(pack\s*of\s*(\d+)\)/i, // "(Pack of 4)" - NEW PATTERN
-      /\(\s*(\d+)\s*\)/i, // "(4)" when referring to pack size
-    ];
-
-    for (const pattern of feverTreeQuantityPatterns) {
-      const match = line.match(pattern);
-      if (match) {
-        const qty = parseInt(match[1], 10);
-        if (qty > 0 && qty <= 10) {
-          // Reasonable limit for packs
-          return qty;
-        }
-      }
-    }
-
-    return 1; // Default to 1 pack
-  };
-
-  // Detect Fever Tree pack type
-  const detectFeverTreePackType = (
-    line: string
-  ): "4-pack" | "8-pack" | "unknown" => {
-    const lowerLine = line.toLowerCase();
-
-    // Check for explicit pack size mentions - most specific patterns first
-    if (
-      lowerLine.includes("pack of 4") ||
-      lowerLine.includes("(pack of 4)") ||
-      lowerLine.includes("pack 4") ||
-      (lowerLine.includes("4") && lowerLine.includes("pack"))
-    ) {
-      return "4-pack";
-    }
-    if (
-      lowerLine.includes("pack of 8") ||
-      lowerLine.includes("(pack of 8)") ||
-      lowerLine.includes("pack 8") ||
-      (lowerLine.includes("8") && lowerLine.includes("pack"))
-    ) {
-      return "8-pack";
-    }
-
-    // Check for bottle/can size indicators
-    if (
-      lowerLine.includes("200") &&
-      (lowerLine.includes("ml") || lowerLine.includes("fvt"))
-    ) {
-      return "4-pack"; // 200ml bottles usually come in 4-packs
-    }
-    if (
-      lowerLine.includes("150") &&
-      (lowerLine.includes("ml") || lowerLine.includes("can"))
-    ) {
-      return "8-pack"; // 150ml cans usually come in 8-packs
-    }
-
-    // Check for patterns with parentheses
-    if (lowerLine.includes("(4)") || lowerLine.includes("( 4 )")) {
-      return "4-pack";
-    }
-    if (lowerLine.includes("(8)") || lowerLine.includes("( 8 )")) {
-      return "8-pack";
-    }
-
-    return "unknown";
-  };
-
-  // Extract quantity from receipt line with improved patterns
-  const extractQuantity = (line: string): number => {
-    // Look for quantity patterns - improved to catch more variations
-    const quantityPatterns = [
-      /^(\d+)\s*x\s/i, // "2 x Bloedlemoen"
-      /^(\d+)\s+/i, // "2 Bloedlemoen" at start of line
-      /\s(\d+)\s*x\s/i, // "Item 3 x Bloedlemoen"
-      /qty[:\s]*(\d+)/i, // "Qty: 2"
-      /quantity[:\s]*(\d+)/i, // "Quantity: 2"
-      /(\d+)\s*bottle/i, // "2 bottles"
-      /(\d+)\s*unit/i, // "2 units"
-      /(\d+)\s*each/i, // "2 each"
-      /(\d+)\s*pc/i, // "2 pc"
-      /(\d+)\s*pcs/i, // "2 pcs"
-      // New patterns for common receipt formats
-      /(\d+)\s*@\s*r?\d+/i, // "2 @ R150" (quantity @ price)
-      /(\d+)\s*\*\s*r?\d+/i, // "2 * R150" (quantity * price)
-      /(\d+)\s+bloedlemoen/i, // "2 bloedlemoen"
-      /bloedlemoen\s+(\d+)/i, // "bloedlemoen 2"
-      // Look for multiple items pattern
-      /(\d+)\s*(750ml|gin|bottle)/i, // "2 750ml" or "2 gin"
-      // FVT specific patterns
-      /(\d+)\s*(pack|fvt|fever)/i, // "4 pack FVT" or "1 fever"
-      /fvt\s*(\d+)/i, // "FVT 4"
-    ];
-
-    for (const pattern of quantityPatterns) {
-      const match = line.match(pattern);
-      if (match) {
-        const qty = parseInt(match[1], 10);
-        if (qty > 0 && qty <= 20) {
-          // Reasonable quantity limit
-          return qty;
-        }
-      }
-    }
-
-    // Additional check: if line contains multiple mentions of bloedlemoen
-    const bloedlemoenMatches = (line.toLowerCase().match(/bloedlemoen/g) || [])
-      .length;
-    if (bloedlemoenMatches > 1) {
-      return bloedlemoenMatches;
-    }
-
-    // Check for price patterns that might indicate multiple items
-    const priceMatches = line.match(/r?\d+[.,]\d{2}/gi);
-    if (priceMatches && priceMatches.length > 1) {
-      // If we see multiple prices, might be quantity indication
-      const firstPrice = parseFloat(priceMatches[0].replace(/[r,]/gi, ""));
-      const secondPrice = parseFloat(priceMatches[1].replace(/[r,]/gi, ""));
-
-      // If one price is a clean multiple of the other, that might be quantity
-      if (secondPrice > firstPrice && secondPrice % firstPrice === 0) {
-        return Math.round(secondPrice / firstPrice);
-      }
-    }
-
-    // If no explicit quantity found, assume 1
-    return 1;
   };
 
   // Calculate points based on what was found
@@ -705,18 +457,7 @@ export default function Dashboard() {
       points += product.points;
     });
 
-    // Bonus for recognized store
-    if (receiptInfo.storeName) points += 10;
-
-    // Bonus for high-confidence detection
-    if (receiptInfo.confidence >= 80) points += 15;
-
-    // Bonus for complete information
-    if (receiptInfo.storeName && receiptInfo.total && receiptInfo.date) {
-      points += 10;
-    }
-
-    return points; // No cap - let points accumulate based on products
+    return points; // No bonuses - just product points
   };
 
   const handleLogout = () => {
@@ -748,7 +489,7 @@ export default function Dashboard() {
         {/* Logo */}
         <div className="flex justify-center mb-2 md:mb-3">
           <Image
-            src="/Bloedlemoen-Gin-Logo.jpg"
+            src="/Landing-Page-Logo.png"
             alt="Bloedlemoen Logo"
             width={300}
             height={150}

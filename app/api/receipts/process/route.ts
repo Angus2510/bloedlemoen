@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { createHash } from "crypto";
 
 interface ReceiptProcessRequest {
   ocrText: string;
@@ -18,6 +19,7 @@ interface ReceiptProcessResponse {
     userId: string;
     imagePath: string;
     ocrText: string | null; // Can be null in database
+    // receiptHash: string | null; // TODO: Re-enable after Prisma regeneration
     storeName: string | null;
     totalAmount: number | null;
     detectedItems: string[];
@@ -28,6 +30,30 @@ interface ReceiptProcessResponse {
   };
   newPointsBalance: number;
   pointsEarned: number;
+}
+
+// Function to create a hash of the receipt content for duplicate detection
+function createReceiptHash(
+  ocrText: string,
+  totalAmount?: string | null
+): string {
+  // Clean the text by removing timestamps, reference numbers, and other dynamic content
+  const cleanedText = ocrText
+    .toLowerCase()
+    .replace(/\d{2}[\/\-\.]\d{2}[\/\-\.]\d{2,4}/g, "") // Remove dates
+    .replace(/\d{2}:\d{2}(:\d{2})?/g, "") // Remove times
+    .replace(/ref[\s:]*\d+/gi, "") // Remove reference numbers
+    .replace(/transaction[\s:]*\d+/gi, "") // Remove transaction IDs
+    .replace(/receipt[\s:]*\d+/gi, "") // Remove receipt numbers
+    .replace(/\s+/g, " ") // Normalize whitespace
+    .trim();
+
+  // Include total amount in hash if available (for extra uniqueness)
+  const hashContent = totalAmount
+    ? `${cleanedText}|${totalAmount}`
+    : cleanedText;
+
+  return createHash("sha256").update(hashContent).digest("hex");
 }
 
 export async function POST(
@@ -61,6 +87,39 @@ export async function POST(
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
+    // Create receipt hash to check for duplicates
+    // const receiptHash = createReceiptHash(ocrText, totalAmount); // TODO: Re-enable after Prisma regeneration
+
+    // TODO: Re-enable duplicate check after regenerating Prisma client
+    // Check if this receipt hash already exists for any user
+    // const existingReceipt = await prisma.receipt.findFirst({
+    //   where: {
+    //     receiptHash: receiptHash,
+    //   },
+    //   include: {
+    //     user: {
+    //       select: {
+    //         email: true,
+    //         name: true,
+    //       },
+    //     },
+    //   },
+    // });
+
+    // if (existingReceipt) {
+    //   // Receipt already exists - return error with details
+    //   const isOwnReceipt = existingReceipt.userId === user.id;
+
+    //   return NextResponse.json(
+    //     {
+    //       error: isOwnReceipt
+    //         ? "You have already uploaded this receipt. Each receipt can only be submitted once."
+    //         : "This receipt has already been submitted by another user. Each receipt can only be used once across all accounts.",
+    //     },
+    //     { status: 409 } // Conflict status code
+    //   );
+    // }
+
     // Convert totalAmount from string to number
     const totalAmountNumber = totalAmount ? parseFloat(totalAmount) : null;
 
@@ -70,6 +129,7 @@ export async function POST(
         userId: user.id,
         imagePath: "", // No image saved, just empty string
         ocrText: ocrText,
+        // receiptHash: receiptHash, // TODO: Re-enable after Prisma regeneration
         storeName: storeName || null,
         totalAmount: totalAmountNumber,
         detectedItems: detectedItems || [],
