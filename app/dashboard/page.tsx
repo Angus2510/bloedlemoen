@@ -297,19 +297,43 @@ export default function DashboardPage() {
     // 2. PRODUCT DETECTION: Look for both bundles and individual products
     const processedLines = new Set<string>();
 
+    console.log("📝 Starting product detection with", lines.length, "lines");
+
     for (const line of lines) {
       const cleanLine = line.trim().toLowerCase();
 
+      console.log(`🔍 Processing line: "${line}"`);
+      console.log(`   - Clean line: "${cleanLine}"`);
+
       // Skip if already processed
-      if (processedLines.has(cleanLine)) continue;
+      if (processedLines.has(cleanLine)) {
+        console.log(`   - ⏭️ Skipping (already processed)`);
+        continue;
+      }
 
       // BUNDLE DETECTION: Look for Bloedlemoen + FREE Fever Tree combination
       const hasBloedlemoen = /bloedlemoen/i.test(cleanLine);
       const hasFree = /free/i.test(cleanLine);
-      const hasFeverTree = /fever.*tree/i.test(cleanLine);
+      const hasFeverTree = /fever.*tree|tonic.*water/i.test(cleanLine); // Also detect "tonic water"
 
-      if (hasBloedlemoen && hasFree && hasFeverTree) {
+      // More specific bundle patterns
+      const isBundlePattern =
+        /bloedlemoen.*\+.*free.*fever.*tree/i.test(cleanLine) ||
+        /bloedlemoen.*\+.*free.*tonic.*water/i.test(cleanLine) ||
+        /bloedlemoen.*free.*fever.*tree/i.test(cleanLine) ||
+        /bloedlemoen.*free.*tonic.*water/i.test(cleanLine) ||
+        (hasBloedlemoen && hasFree && hasFeverTree);
+
+      console.log(`   - Has Bloedlemoen: ${hasBloedlemoen}`);
+      console.log(`   - Has FREE: ${hasFree}`);
+      console.log(`   - Has Fever Tree/Tonic: ${hasFeverTree}`);
+      console.log(`   - Is Bundle Pattern: ${isBundlePattern}`);
+
+      if (isBundlePattern) {
         console.log(`🎯 BUNDLE DETECTED: "${line}"`);
+        console.log(`   - Has Bloedlemoen: ${hasBloedlemoen}`);
+        console.log(`   - Has FREE: ${hasFree}`);
+        console.log(`   - Has Fever Tree/Tonic: ${hasFeverTree}`);
 
         // Extract quantity from line (default to 1)
         const quantityMatch = cleanLine.match(
@@ -338,8 +362,9 @@ export default function DashboardPage() {
         );
       }
       // INDIVIDUAL BLOEDLEMOEN DETECTION (if not part of bundle)
-      else if (hasBloedlemoen) {
+      else if (hasBloedlemoen && !isBundlePattern) {
         console.log(`🍾 INDIVIDUAL BLOEDLEMOEN DETECTED: "${line}"`);
+        console.log(`   - NOT a bundle (no FREE + Fever Tree/Tonic detected)`);
 
         // Extract quantity from line (default to 1)
         const quantityMatch = cleanLine.match(
