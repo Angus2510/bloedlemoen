@@ -16,50 +16,73 @@ const processReceiptText = (text: string) => {
 
   console.log("📝 Starting product detection with", lines.length, "lines");
 
+  let totalPoints = 0;
+  const detectedProducts: string[] = [];
+  let hasBloedlemoen = false;
+  let hasFeverTree = false;
+
   for (const line of lines) {
     const cleanLine = line.trim().toLowerCase();
 
     console.log(`🔍 Processing line: "${line}"`);
     console.log(`   - Clean line: "${cleanLine}"`);
 
-    // BUNDLE DETECTION: Look for Bloedlemoen + FREE Fever Tree combination
-    const hasBloedlemoen = /bloedlemoen/i.test(cleanLine);
-    const hasFree = /free/i.test(cleanLine);
-    const hasFeverTree = /fever.*tree|tonic.*water/i.test(cleanLine); // Also detect "tonic water"
-
-    // More specific bundle patterns
-    const isBundlePattern =
-      /bloedlemoen.*\+.*free.*fever.*tree/i.test(cleanLine) ||
-      /bloedlemoen.*\+.*free.*tonic.*water/i.test(cleanLine) ||
-      /bloedlemoen.*free.*fever.*tree/i.test(cleanLine) ||
-      /bloedlemoen.*free.*tonic.*water/i.test(cleanLine) ||
-      (hasBloedlemoen && hasFree && hasFeverTree);
-
-    console.log(`   - Has Bloedlemoen: ${hasBloedlemoen}`);
-    console.log(`   - Has FREE: ${hasFree}`);
-    console.log(`   - Has Fever Tree/Tonic: ${hasFeverTree}`);
-    console.log(`   - Is Bundle Pattern: ${isBundlePattern}`);
-
-    if (isBundlePattern) {
-      console.log(`🎯 BUNDLE DETECTED: "${line}"`);
-      console.log(`   - Has Bloedlemoen: ${hasBloedlemoen}`);
-      console.log(`   - Has FREE: ${hasFree}`);
-      console.log(`   - Has Fever Tree/Tonic: ${hasFeverTree}`);
-
-      console.log(`✅ Bundle detected: 150 points awarded`);
-      return { type: "bundle", points: 150, line };
+    // BLOEDLEMOEN DETECTION (100 points)
+    if (/bloedlemoen/i.test(cleanLine) && !hasBloedlemoen) {
+      console.log(`🍾 BLOEDLEMOEN DETECTED: "${line}"`);
+      totalPoints += 100;
+      detectedProducts.push("Bloedlemoen Gin 750ml (100 pts)");
+      hasBloedlemoen = true;
     }
-    // INDIVIDUAL BLOEDLEMOEN DETECTION (if not part of bundle)
-    else if (hasBloedlemoen && !isBundlePattern) {
-      console.log(`🍾 INDIVIDUAL BLOEDLEMOEN DETECTED: "${line}"`);
-      console.log(`   - NOT a bundle (no FREE + Fever Tree/Tonic detected)`);
 
-      console.log(`✅ Individual Bloedlemoen detected: 100 points awarded`);
-      return { type: "individual", points: 100, line };
+    // FEVER TREE DETECTION (50 points)
+    // Enhanced patterns to catch all variations of Fever Tree Tonic Water
+    const feverTreePatterns = [
+      /fever.*tree/i, // "fever tree", "fever-tree", "fevertree"
+      /tonic.*water/i, // "tonic water", "tonic-water"
+      /fever.*tonic/i, // "fever tree tonic", "fever tonic"
+      /tree.*tonic/i, // "tree tonic water", "tree tonic"
+      /fever.*tree.*tonic/i, // "fever tree tonic water"
+      /fever.*tree.*water/i, // "fever tree tonic water"
+      /tonic.*fever/i, // "tonic fever tree" (reversed)
+      /water.*fever/i, // "water fever tree" (reversed)
+      /fevertree/i, // "fevertree" (one word)
+      /fever-tree/i, // "fever-tree" (hyphenated)
+      /tonic.*fever.*tree/i, // "tonic fever tree"
+      /water.*tonic/i, // "water tonic", "tonic water" variations
+    ];
+
+    const hasFeverTreeInLine = feverTreePatterns.some((pattern) =>
+      pattern.test(cleanLine)
+    );
+
+    if (hasFeverTreeInLine && !hasFeverTree) {
+      console.log(`🥤 FEVER TREE DETECTED: "${line}"`);
+      totalPoints += 50;
+      detectedProducts.push("Fever Tree Tonic Water (50 pts)");
+      hasFeverTree = true;
     }
   }
 
-  return { type: "none", points: 0, line: "" };
+  console.log(`📊 Final Summary:`);
+  console.log(`   - Bloedlemoen detected: ${hasBloedlemoen}`);
+  console.log(`   - Fever Tree detected: ${hasFeverTree}`);
+  console.log(`   - Total points: ${totalPoints}`);
+  console.log(`   - Products found: ${detectedProducts.join(", ")}`);
+
+  return {
+    type:
+      totalPoints === 150
+        ? "bundle"
+        : totalPoints === 100
+        ? "bloedlemoen-only"
+        : totalPoints === 50
+        ? "fever-tree-only"
+        : "none",
+    points: totalPoints,
+    line: detectedProducts.join(" + "),
+    products: detectedProducts,
+  };
 };
 
 export default function TestPage() {
@@ -70,6 +93,7 @@ export default function TestPage() {
     type: string;
     points: number;
     line: string;
+    products: string[];
   } | null>(null);
 
   const runTest = () => {
@@ -133,7 +157,7 @@ export default function TestPage() {
                 <strong>Points:</strong> {result.points}
               </p>
               <p>
-                <strong>Line:</strong> &quot;{result.line}&quot;
+                <strong>Products:</strong> {result.products.join(", ")}
               </p>
 
               <div className="mt-2 text-sm text-gray-600">

@@ -294,8 +294,10 @@ export default function DashboardPage() {
       }
     }
 
-    // 2. PRODUCT DETECTION: Look for both bundles and individual products
+    // 2. PRODUCT DETECTION: Look for products separately and add points
     const processedLines = new Set<string>();
+    let bloedlemoenDetected = false;
+    let feverTreeDetected = false;
 
     console.log("📝 Starting product detection with", lines.length, "lines");
 
@@ -311,88 +313,112 @@ export default function DashboardPage() {
         continue;
       }
 
-      // BUNDLE DETECTION: Look for Bloedlemoen + FREE Fever Tree combination
-      const hasBloedlemoen = /bloedlemoen/i.test(cleanLine);
-      const hasFree = /free/i.test(cleanLine);
-      const hasFeverTree = /fever.*tree|tonic.*water/i.test(cleanLine); // Also detect "tonic water"
+      // BLOEDLEMOEN DETECTION (100 points per bottle) - only detect once
+      if (/bloedlemoen/i.test(cleanLine) && !bloedlemoenDetected) {
+        console.log(`🍾 BLOEDLEMOEN DETECTED: "${line}"`);
 
-      // More specific bundle patterns
-      const isBundlePattern =
-        /bloedlemoen.*\+.*free.*fever.*tree/i.test(cleanLine) ||
-        /bloedlemoen.*\+.*free.*tonic.*water/i.test(cleanLine) ||
-        /bloedlemoen.*free.*fever.*tree/i.test(cleanLine) ||
-        /bloedlemoen.*free.*tonic.*water/i.test(cleanLine) ||
-        (hasBloedlemoen && hasFree && hasFeverTree);
+        // Enhanced quantity detection patterns for your specific case
+        const quantityPatterns = [
+          /^(\d+)\s/, // "2 Bloedlemoen..." (number at start)
+          /qty\s*(\d+)/i, // "Qty 2" or "QTY: 2"
+          /quantity\s*(\d+)/i, // "Quantity 2"
+          /(\d+)\s*x\s*bloedlemoen/i, // "2x Bloedlemoen" or "2 x Bloedlemoen"
+          /(\d+)\s+bloedlemoen/i, // "2 Bloedlemoen"
+          /bloedlemoen.*x\s*(\d+)/i, // "Bloedlemoen x2"
+          /(\d+)\s*bottles?\s*bloedlemoen/i, // "2 bottles Bloedlemoen"
+          /bloedlemoen.*(\d+)\s*bottles?/i, // "Bloedlemoen 2 bottles"
+        ];
 
-      console.log(`   - Has Bloedlemoen: ${hasBloedlemoen}`);
-      console.log(`   - Has FREE: ${hasFree}`);
-      console.log(`   - Has Fever Tree/Tonic: ${hasFeverTree}`);
-      console.log(`   - Is Bundle Pattern: ${isBundlePattern}`);
-
-      if (isBundlePattern) {
-        console.log(`🎯 BUNDLE DETECTED: "${line}"`);
-        console.log(`   - Has Bloedlemoen: ${hasBloedlemoen}`);
-        console.log(`   - Has FREE: ${hasFree}`);
-        console.log(`   - Has Fever Tree/Tonic: ${hasFeverTree}`);
-
-        // Extract quantity from line (default to 1)
-        const quantityMatch = cleanLine.match(
-          /(\d+)\s*x|\b(\d+)\s+bloedlemoen/
-        );
-        const quantity = quantityMatch
-          ? parseInt(quantityMatch[1] || quantityMatch[2])
-          : 1;
-
-        receiptInfo.bloedlemoenProducts.push({
-          name: "1 Bloedlemoen Amber 750ml + FREE Fever Tree Tonic Water (Pack of 4)",
-          quantity: quantity,
-          line: line.trim(),
-          type: "bloedlemoen", // Bundle is primarily a Bloedlemoen product
-          points: 150 * quantity, // EXACTLY 150 points per bundle
-        });
-
-        receiptInfo.totalBottles += quantity;
-        receiptInfo.confidence += 50;
-        processedLines.add(cleanLine);
-
-        console.log(
-          `✅ Bundle added: ${quantity}x 150 points = ${
-            150 * quantity
-          } total points`
-        );
-      }
-      // INDIVIDUAL BLOEDLEMOEN DETECTION (if not part of bundle)
-      else if (hasBloedlemoen && !isBundlePattern) {
-        console.log(`🍾 INDIVIDUAL BLOEDLEMOEN DETECTED: "${line}"`);
-        console.log(`   - NOT a bundle (no FREE + Fever Tree/Tonic detected)`);
-
-        // Extract quantity from line (default to 1)
-        const quantityMatch = cleanLine.match(
-          /(\d+)\s*x|\b(\d+)\s+bloedlemoen|(\d+)\s*bloedlemoen/
-        );
-        const quantity = quantityMatch
-          ? parseInt(quantityMatch[1] || quantityMatch[2] || quantityMatch[3])
-          : 1;
+        let quantity = 1; // Default to 1
+        for (const pattern of quantityPatterns) {
+          const match = cleanLine.match(pattern);
+          if (match && match[1]) {
+            const detectedQty = parseInt(match[1]);
+            if (detectedQty > 0 && detectedQty <= 50) {
+              // Reasonable limit
+              quantity = detectedQty;
+              console.log(
+                `   - Quantity detected: ${quantity} (pattern: ${pattern})`
+              );
+              break;
+            }
+          }
+        }
 
         receiptInfo.bloedlemoenProducts.push({
-          name: `Bloedlemoen Gin 750ml`,
+          name: "Bloedlemoen Amber Gin 750ml",
           quantity: quantity,
           line: line.trim(),
           type: "bloedlemoen",
-          points: 100 * quantity, // 100 points per individual bottle
+          points: 100 * quantity, // 100 points per bottle
         });
 
         receiptInfo.totalBottles += quantity;
         receiptInfo.confidence += 40;
+        bloedlemoenDetected = true;
         processedLines.add(cleanLine);
 
         console.log(
-          `✅ Individual Bloedlemoen added: ${quantity}x 100 points = ${
+          `✅ Bloedlemoen added: ${quantity}x bottles = ${
             100 * quantity
-          } total points`
+          } points`
         );
       }
+
+      // FEVER TREE DETECTION (50 points) - only detect once
+      // Enhanced patterns to catch all variations of Fever Tree Tonic Water
+      const feverTreePatterns = [
+        /fever.*tree/i, // "fever tree", "fever-tree", "fevertree"
+        /tonic.*water/i, // "tonic water", "tonic-water"
+        /fever.*tonic/i, // "fever tree tonic", "fever tonic"
+        /tree.*tonic/i, // "tree tonic water", "tree tonic"
+        /fever.*tree.*tonic/i, // "fever tree tonic water"
+        /fever.*tree.*water/i, // "fever tree tonic water"
+        /tonic.*fever/i, // "tonic fever tree" (reversed)
+        /water.*fever/i, // "water fever tree" (reversed)
+        /fevertree/i, // "fevertree" (one word)
+        /fever-tree/i, // "fever-tree" (hyphenated)
+        /tonic.*fever.*tree/i, // "tonic fever tree"
+        /water.*tonic/i, // "water tonic", "tonic water" variations
+      ];
+
+      const hasFeverTree = feverTreePatterns.some((pattern) =>
+        pattern.test(cleanLine)
+      );
+
+      if (hasFeverTree && !feverTreeDetected) {
+        console.log(`🥤 FEVER TREE DETECTED: "${line}"`);
+        console.log(`   - Matched pattern for Fever Tree/Tonic Water`);
+
+        receiptInfo.bloedlemoenProducts.push({
+          name: "Fever Tree Tonic Water (Pack of 4)",
+          quantity: 1,
+          line: line.trim(),
+          type: "fever-tree",
+          points: 50,
+        });
+
+        receiptInfo.confidence += 30;
+        feverTreeDetected = true;
+        processedLines.add(cleanLine);
+
+        console.log(`✅ Fever Tree added: 50 points`);
+      }
     }
+
+    // Calculate total points
+    const totalPoints = receiptInfo.bloedlemoenProducts.reduce(
+      (sum, product) => sum + product.points,
+      0
+    );
+    console.log(`📊 DETECTION SUMMARY:`);
+    console.log(`   - Bloedlemoen detected: ${bloedlemoenDetected}`);
+    console.log(`   - Fever Tree detected: ${feverTreeDetected}`);
+    console.log(
+      `   - Total products: ${receiptInfo.bloedlemoenProducts.length}`
+    );
+    console.log(`   - Total points: ${totalPoints}`);
+    console.log("===============================");
 
     // 3. Search for total amount
     const totalPatterns = [

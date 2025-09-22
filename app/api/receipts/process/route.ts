@@ -19,7 +19,7 @@ interface ReceiptProcessResponse {
     userId: string;
     imagePath: string;
     ocrText: string | null; // Can be null in database
-    // receiptHash: string | null; // TODO: Re-enable after Prisma regeneration
+    receiptHash: string | null;
     storeName: string | null;
     totalAmount: number | null;
     detectedItems: string[];
