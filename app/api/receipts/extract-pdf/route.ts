@@ -1,6 +1,53 @@
 import { NextRequest, NextResponse } from "next/server";
 import PDFParser from "pdf2json";
 
+// Enhanced text cleaning function for email-to-PDF artifacts
+function cleanExtractedText(text: string): string {
+  return (
+    text
+      // Remove excessive spacing patterns common in email PDFs
+      .replace(/\s{3,}/g, " ") // Replace 3+ spaces with single space
+      .replace(/([A-Z])\s+([A-Z])\s+([A-Z])/g, "$1$2$3") // Fix "B L O E D L E M O E N" -> "BLOEDLEMOEN"
+      .replace(/([a-z])\s+([a-z])\s+([a-z])/g, "$1$2$3") // Fix lowercase versions
+      // Fix common brand name patterns
+      .replace(/B\s*L\s*O\s*E\s*D\s*L\s*E\s*M\s*O\s*E\s*N/gi, "Bloedlemoen")
+      .replace(/F\s*E\s*V\s*E\s*R\s*[\s\-]*T\s*R\s*E\s*E/gi, "Fever Tree")
+      .replace(/F\s*e\s*v\s*e\s*r\s*[\s\-]*T\s*r\s*e\s*e/gi, "Fever Tree")
+      // Fix product types
+      .replace(/T\s*O\s*N\s*I\s*C/gi, "Tonic")
+      .replace(/W\s*A\s*T\s*E\s*R/gi, "Water")
+      .replace(/I\s*N\s*D\s*I\s*A\s*N/gi, "Indian")
+      .replace(/E\s*L\s*D\s*E\s*R\s*F\s*L\s*O\s*W\s*E\s*R/gi, "Elderflower")
+      .replace(
+        /M\s*E\s*D\s*I\s*T\s*E\s*R\s*R\s*A\s*N\s*E\s*A\s*N/gi,
+        "Mediterranean"
+      )
+      // Clean up extra whitespace
+      .replace(/\s+/g, " ")
+      .trim()
+  );
+}
+
+// Check if text appears to be gibberish
+function isGibberishText(text: string): boolean {
+  const sample = text.slice(0, 300).toLowerCase();
+
+  // Check for excessive single-letter patterns
+  const singleLetterRatio =
+    (sample.match(/\b[a-z]\b/g) || []).length / sample.length;
+  if (singleLetterRatio > 0.3) return true;
+
+  // Check for repetitive patterns like "G G G G"
+  const repetitivePattern = /([a-z])\s+\1\s+\1\s+\1/i;
+  if (repetitivePattern.test(sample)) return true;
+
+  // Check for lack of real words
+  const wordCount = (sample.match(/\b[a-z]{3,}\b/gi) || []).length;
+  if (wordCount < 5 && sample.length > 100) return true;
+
+  return false;
+}
+
 export async function POST(request: NextRequest) {
   try {
     console.log("PDF extraction request received");
@@ -96,7 +143,25 @@ export async function POST(request: NextRequest) {
               "PDF text extracted successfully, length:",
               fullText.length
             );
-            resolve(fullText.trim());
+
+            // Clean the extracted text
+            const cleanedText = cleanExtractedText(fullText.trim());
+            console.log("Text after cleaning, length:", cleanedText.length);
+            console.log(
+              "First 200 chars after cleaning:",
+              cleanedText.slice(0, 200)
+            );
+
+            // Check if the result is still gibberish
+            if (isGibberishText(cleanedText)) {
+              console.warn(
+                "Extracted text appears to be gibberish even after cleaning"
+              );
+              resolve(cleanedText); // Still return it, let the frontend handle it
+            } else {
+              console.log("Text extraction and cleaning successful");
+              resolve(cleanedText);
+            }
           } catch (error) {
             console.error("Error processing PDF data:", error);
             reject(error);

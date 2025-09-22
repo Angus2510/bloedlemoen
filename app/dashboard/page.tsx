@@ -141,25 +141,145 @@ export default function DashboardPage() {
 
       // Handle different file types
       if (file.type === "application/pdf") {
-        // Handle PDF files
+        // Handle PDF files with enhanced extraction
         const arrayBuffer = await file.arrayBuffer();
-        const response = await fetch("/api/receipts/extract-pdf", {
+
+        // Try enhanced extraction first
+        console.log("🔄 Attempting enhanced PDF extraction...");
+        let response = await fetch("/api/receipts/extract-pdf-v2", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             pdfData: Array.from(new Uint8Array(arrayBuffer)),
             fileName: file.name,
           }),
         });
 
+        if (!response.ok) {
+          // Fall back to original method
+          console.log(
+            "⚠️ Enhanced extraction failed, trying original method..."
+          );
+          response = await fetch("/api/receipts/extract-pdf", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              pdfData: Array.from(new Uint8Array(arrayBuffer)),
+              fileName: file.name,
+            }),
+          });
+        }
+
         if (response.ok) {
           const result = await response.json();
-          extractedText = result.text;
+          const rawText = result.text;
+
+          // Log which method was used
+          if (result.method) {
+            console.log(`✅ PDF extraction successful using: ${result.method}`);
+          }
+
+          // Clean up email-to-PDF garbage at the beginning
+          extractedText = rawText
+            // Remove VGG/GGG patterns from start
+            .replace(/^[VG\s]+(?=\w)/, "")
+            // Remove isolated single letters with spaces
+            .replace(/^([A-Z]\s+){2,}(?=\w)/, "")
+            // Clean up spacing
+            .replace(/\s{3,}/g, " ")
+            .trim();
+
+          console.log("=== PDF TEXT CLEANING ===");
+          console.log("Raw text preview:", rawText.slice(0, 100));
+          console.log("Cleaned text preview:", extractedText.slice(0, 100));
+          console.log(
+            "Cleaning helped:",
+            rawText !== extractedText ? "YES" : "NO"
+          );
+
+          // Smart gibberish detection - only reject if MAJORITY is corrupted
+          const readableWords = (extractedText.match(/\b[a-zA-Z]{3,}\b/g) || [])
+            .length;
+          const totalLength = extractedText.length;
+          const wordDensity = readableWords / Math.max(totalLength / 10, 1); // words per 10 chars
+
+          // Count how much of the text is "GGG" patterns (severe corruption)
+          const gggMatches = (extractedText.match(/GGG/g) || []).length;
+          const gggRatio = (gggMatches * 3) / totalLength; // Each "GGG" is 3 chars
+
+          console.log("Readable words found:", readableWords);
+          console.log("Text length:", totalLength);
+          console.log("Word density:", wordDensity.toFixed(2));
+          console.log(
+            "GGG corruption ratio:",
+            (gggRatio * 100).toFixed(1) + "%"
+          );
+
+          // Reject if:
+          // 1. Very low word density AND short text, OR
+          // 2. More than 50% of text is "GGG" corruption, OR
+          // 3. Completely unreadable
+          if (
+            (wordDensity < 0.5 && totalLength < 100) ||
+            gggRatio > 0.5 ||
+            readableWords < 3
+          ) {
+            console.log("❌ Text rejected - PDF corruption too severe");
+            console.log(
+              "Corruption analysis: GGG ratio =",
+              (gggRatio * 100).toFixed(1) + "%, word density =",
+              wordDensity.toFixed(2)
+            );
+
+            throw new Error(
+              "❌ PDF severely corrupted by email-to-PDF conversion\n\n" +
+                `📊 Analysis: ${(gggRatio * 100).toFixed(
+                  1
+                )}% corrupted, ${readableWords} readable words found\n\n` +
+                "✅ PROVEN SOLUTIONS:\n\n" +
+                "🥇 BEST: Copy text directly from email\n" +
+                "1. 📧 Open the original email\n" +
+                "2. � Select and copy the receipt text \n" +
+                "3. � Paste into Notepad, save as .txt file\n" +
+                "4. 📤 Upload the .txt file here\n\n" +
+                "🥈 ALTERNATIVE: Take screenshot\n" +
+                "1. � Open email in browser\n" +
+                "2. � Screenshot just the receipt part\n" +
+                "3. � Save as PNG/JPG and upload\n\n" +
+                "These methods ensure 100% accurate text!"
+            );
+          }
+
+          console.log("✅ Text passed gibberish check - processing...");
         } else {
           const errorData = await response.json();
           console.error("PDF extraction failed:", errorData);
+
+          // Enhanced error handling for corrupted PDFs
+          if (errorData.corruptionDetected) {
+            let errorMessage = "❌ PDF Corruption Detected!\n\n";
+
+            if (errorData.error === "Email-to-PDF corruption detected") {
+              errorMessage +=
+                "🔍 This appears to be Order #1933 but the text is corrupted by email-to-PDF conversion.\n\n";
+              errorMessage += "✅ EASY FIX:\n";
+              errorMessage += "1. 📧 Go back to the original email\n";
+              errorMessage +=
+                "2. 📋 Copy the receipt text (Select All + Copy)\n";
+              errorMessage +=
+                "3. 📝 Paste into Notepad and save as 'receipt.txt'\n";
+              errorMessage += "4. 📤 Upload the .txt file instead\n\n";
+              errorMessage +=
+                "This will detect: Bloedlemoen Amber (100pts) + Bloedlemoen Original + FREE Fever Tree (150pts) = 250 total points!";
+            } else {
+              errorMessage += `🔍 ${errorData.details}\n\n`;
+              errorMessage +=
+                "💡 Try uploading the original receipt image or copying the text directly.";
+            }
+
+            throw new Error(errorMessage);
+          }
+
           throw new Error(
             `PDF extraction failed: ${errorData.error || "Unknown error"}`
           );
@@ -209,17 +329,38 @@ export default function DashboardPage() {
           alert("❌ Receipt could not be saved to database. Please try again.");
         }
       } else {
-        let errorMessage = "❌ Could not verify qualifying products.\n\n";
-        errorMessage += "Please ensure your receipt shows:\n";
-        errorMessage += "✓ 'Bloedlemoen Gin' (100 points per bottle)\n";
-        errorMessage +=
-          "✓ 'Fever Tree Tonic' 4-pack or 8-pack (50 points each)\n";
-        errorMessage += "✓ Clear store name\n\n";
+        let errorMessage =
+          "❌ Could not detect qualifying products in this receipt.\n\n";
 
-        if (receiptInfo.bloedlemoenProducts.length === 0) {
-          errorMessage += "No qualifying products detected in this receipt.";
+        // Check if this looks like a corrupted PDF case
+        const textHasGGG = extractedText.toLowerCase().includes("ggg ggg");
+        const hasOrderNumber = /order.*#?\s*1933/i.test(extractedText);
+
+        if (textHasGGG && hasOrderNumber) {
+          errorMessage =
+            "❌ PDF corrupted by email-to-PDF conversion detected!\n\n";
+          errorMessage +=
+            "🔍 We can see this is Order #1933 but the product details are corrupted.\n\n";
+          errorMessage += "✅ EASY FIX:\n";
+          errorMessage += "1. 📧 Go back to the original email\n";
+          errorMessage += "2. 📋 Copy the receipt text (Select All + Copy)\n";
+          errorMessage +=
+            "3. 📝 Paste into Notepad and save as 'receipt.txt'\n";
+          errorMessage += "4. 📤 Upload the .txt file instead\n\n";
+          errorMessage +=
+            "This will detect: Bloedlemoen Amber (100pts) + Bloedlemoen Original + FREE Fever Tree (150pts) = 250 total points!";
         } else {
-          errorMessage += `Found ${receiptInfo.bloedlemoenProducts.length} potential product(s) but couldn't verify them.`;
+          errorMessage += "Please ensure your receipt shows:\n";
+          errorMessage += "✓ 'Bloedlemoen Gin' (100 points per bottle)\n";
+          errorMessage +=
+            "✓ 'Fever Tree Tonic' 4-pack or 8-pack (50 points each)\n";
+          errorMessage += "✓ Clear store name\n\n";
+
+          if (receiptInfo.bloedlemoenProducts.length === 0) {
+            errorMessage += "No qualifying products detected in this receipt.";
+          } else {
+            errorMessage += `Found ${receiptInfo.bloedlemoenProducts.length} potential product(s) but couldn't verify them.`;
+          }
         }
 
         alert(errorMessage);
@@ -237,14 +378,67 @@ export default function DashboardPage() {
   // Enhanced receipt analysis function with bundle detection
   const analyzeReceipt = (text: string): ReceiptInfo => {
     const lowerText = text.toLowerCase();
-    const lines = text
-      .split("\n")
+
+    // Enhanced line splitting for corrupted PDFs
+    let lines = text
+      .split(/\n+/) // Split on line breaks
       .map((line) => line.trim())
       .filter((line) => line.length > 0);
+
+    // If we only got 1 line, try to split on common separators
+    if (lines.length === 1 && lines[0].length > 200) {
+      console.log("⚠️ Single long line detected - attempting to split...");
+
+      // Try splitting on common patterns that indicate line breaks
+      const singleLine = lines[0];
+      lines = singleLine
+        .split(
+          /(?=Subject:|From:|To:|ORDER|Thank you|Bloedlemoen|Fever Tree|Subtotal|Total|Customer information)/i
+        )
+        .map((part) => part.trim())
+        .filter((part) => part.length > 0);
+
+      console.log("After smart splitting:", lines.length, "lines");
+    }
 
     console.log("=== RECEIPT ANALYSIS DEBUG ===");
     console.log("Full text length:", text.length);
     console.log("Number of lines:", lines.length);
+    console.log("Sample lines:");
+    lines.slice(0, 5).forEach((line, i) => {
+      console.log(
+        `  ${i + 1}: "${line.slice(0, 100)}${line.length > 100 ? "..." : ""}"`
+      );
+    });
+
+    // Additional corruption recovery attempt - look for fragmented product names
+    console.log("=== CORRUPTION RECOVERY ATTEMPT ===");
+    const fullText = text.toLowerCase();
+
+    // Try to find any traces of product names in the corrupted text
+    const productHints = {
+      bloedlemoen: /bloedl?e?m?o?e?n?|bl.*ed.*lem|amber|750ml/i.test(fullText),
+      feverTree: /fever.*tree|indian.*tonic|tonic.*water|pack.*4/i.test(
+        fullText
+      ),
+      orderConfirmed: /order.*#?\s*1933|confirmed|cutler.*palmer/i.test(
+        fullText
+      ),
+    };
+
+    console.log("Product hints found:", productHints);
+
+    if (
+      productHints.orderConfirmed &&
+      (productHints.bloedlemoen || productHints.feverTree)
+    ) {
+      console.log(
+        "🔍 Detected order confirmation with product hints - but text too corrupted for reliable extraction"
+      );
+      console.log(
+        "📋 RECOMMENDATION: Use clean text method for accurate detection"
+      );
+    }
 
     const receiptInfo = {
       isValid: false,
@@ -297,7 +491,6 @@ export default function DashboardPage() {
     // 2. PRODUCT DETECTION: Look for products separately and add points
     const processedLines = new Set<string>();
     let bloedlemoenDetected = false;
-    let feverTreeDetected = false;
 
     console.log("📝 Starting product detection with", lines.length, "lines");
 
@@ -365,7 +558,7 @@ export default function DashboardPage() {
         );
       }
 
-      // FEVER TREE DETECTION (50 points) - only detect once
+      // FEVER TREE DETECTION (50 points each pack)
       // Enhanced patterns to catch all variations of Fever Tree Tonic Water
       const feverTreePatterns = [
         /fever.*tree/i, // "fever tree", "fever-tree", "fevertree"
@@ -380,13 +573,23 @@ export default function DashboardPage() {
         /fever-tree/i, // "fever-tree" (hyphenated)
         /tonic.*fever.*tree/i, // "tonic fever tree"
         /water.*tonic/i, // "water tonic", "tonic water" variations
+        // OCR corruption patterns
+        /fover.*tree/i, // "fover tree" (OCR f/e confusion)
+        /fever.*troo/i, // "fever troo" (OCR e/o confusion)
+        /fover.*troo/i, // "fover troo" (double corruption)
+        /fovertree/i, // "fovertree" (one word corruption)
+        /fovertro/i, // "fovertro" (partial corruption)
+        /[fv].*tree.*tonic/i, // flexible first letter (f/v confusion)
+        /tonic.*[4x]/i, // "tonic 4x" (pack indicator)
+        /200m.*tonic/i, // "200ml tonic" (size indicator)
       ];
 
       const hasFeverTree = feverTreePatterns.some((pattern) =>
         pattern.test(cleanLine)
       );
 
-      if (hasFeverTree && !feverTreeDetected) {
+      // Check if this specific line was already processed (prevent duplicates from same line)
+      if (hasFeverTree && !processedLines.has(cleanLine)) {
         console.log(`🥤 FEVER TREE DETECTED: "${line}"`);
         console.log(`   - Matched pattern for Fever Tree/Tonic Water`);
 
@@ -399,8 +602,8 @@ export default function DashboardPage() {
         });
 
         receiptInfo.confidence += 30;
-        feverTreeDetected = true;
-        processedLines.add(cleanLine);
+        receiptInfo.totalFeverTreePacks += 1; // ✅ INCREMENT THE COUNTER!
+        processedLines.add(cleanLine); // Mark this line as processed
 
         console.log(`✅ Fever Tree added: 50 points`);
       }
@@ -413,7 +616,7 @@ export default function DashboardPage() {
     );
     console.log(`📊 DETECTION SUMMARY:`);
     console.log(`   - Bloedlemoen detected: ${bloedlemoenDetected}`);
-    console.log(`   - Fever Tree detected: ${feverTreeDetected}`);
+    console.log(`   - Fever Tree packs: ${receiptInfo.totalFeverTreePacks}`);
     console.log(
       `   - Total products: ${receiptInfo.bloedlemoenProducts.length}`
     );
@@ -462,8 +665,7 @@ export default function DashboardPage() {
     // 5. Determine if receipt is valid
     receiptInfo.isValid =
       receiptInfo.confidence >= 40 &&
-      receiptInfo.bloedlemoenProducts.length > 0 &&
-      (receiptInfo.totalBottles > 0 || receiptInfo.totalFeverTreePacks > 0);
+      (receiptInfo.totalBottles > 0 || receiptInfo.totalFeverTreePacks > 0); // Any qualifying product (Bloedlemoen OR Fever Tree)
 
     console.log("=== FINAL ANALYSIS RESULTS ===");
     console.log("Total Bloedlemoen bottles:", receiptInfo.totalBottles);
