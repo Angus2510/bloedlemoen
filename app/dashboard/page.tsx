@@ -490,7 +490,6 @@ export default function DashboardPage() {
 
     // 2. PRODUCT DETECTION: Look for products separately and add points
     const processedLines = new Set<string>();
-    let bloedlemoenDetected = false;
 
     console.log("📝 Starting product detection with", lines.length, "lines");
 
@@ -506,20 +505,20 @@ export default function DashboardPage() {
         continue;
       }
 
-      // BLOEDLEMOEN DETECTION (100 points per bottle) - only detect once
-      if (/bloedlemoen/i.test(cleanLine) && !bloedlemoenDetected) {
+      // BLOEDLEMOEN DETECTION (100 points per bottle) - supports multiple bottles per slip
+      if (/(b[\s\/\-\.]?lemoen|bloedlemoen)/i.test(cleanLine)) {
         console.log(`🍾 BLOEDLEMOEN DETECTED: "${line}"`);
 
-        // Enhanced quantity detection patterns for your specific case
+        // Enhanced quantity detection patterns for B/LEMOEN variations
         const quantityPatterns = [
-          /^(\d+)\s/, // "2 Bloedlemoen..." (number at start)
+          /^(\d+)\s/, // "2 B/LEMOEN..." (number at start)
           /qty\s*(\d+)/i, // "Qty 2" or "QTY: 2"
           /quantity\s*(\d+)/i, // "Quantity 2"
-          /(\d+)\s*x\s*bloedlemoen/i, // "2x Bloedlemoen" or "2 x Bloedlemoen"
-          /(\d+)\s+bloedlemoen/i, // "2 Bloedlemoen"
-          /bloedlemoen.*x\s*(\d+)/i, // "Bloedlemoen x2"
-          /(\d+)\s*bottles?\s*bloedlemoen/i, // "2 bottles Bloedlemoen"
-          /bloedlemoen.*(\d+)\s*bottles?/i, // "Bloedlemoen 2 bottles"
+          /(\d+)\s*x\s*(?:b[\s\/\-\.]?lemoen|bloedlemoen)/i, // "2x B/LEMOEN" or "2 x Bloedlemoen"
+          /(\d+)\s+(?:b[\s\/\-\.]?lemoen|bloedlemoen)/i, // "2 B/LEMOEN"
+          /(?:b[\s\/\-\.]?lemoen|bloedlemoen).*x\s*(\d+)/i, // "B/LEMOEN x2"
+          /(\d+)\s*bottles?\s*(?:b[\s\/\-\.]?lemoen|bloedlemoen)/i, // "2 bottles B/LEMOEN"
+          /(?:b[\s\/\-\.]?lemoen|bloedlemoen).*\s*(\d+)\s*bottles?/i, // "B/LEMOEN 2 bottles"
         ];
 
         let quantity = 1; // Default to 1
@@ -548,7 +547,6 @@ export default function DashboardPage() {
 
         receiptInfo.totalBottles += quantity;
         receiptInfo.confidence += 40;
-        bloedlemoenDetected = true;
         processedLines.add(cleanLine);
 
         console.log(
@@ -615,7 +613,7 @@ export default function DashboardPage() {
       0
     );
     console.log(`📊 DETECTION SUMMARY:`);
-    console.log(`   - Bloedlemoen detected: ${bloedlemoenDetected}`);
+    console.log(`   - Bloedlemoen bottles: ${receiptInfo.totalBottles}`);
     console.log(`   - Fever Tree packs: ${receiptInfo.totalFeverTreePacks}`);
     console.log(
       `   - Total products: ${receiptInfo.bloedlemoenProducts.length}`
