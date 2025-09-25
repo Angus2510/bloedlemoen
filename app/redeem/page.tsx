@@ -399,7 +399,7 @@ export default function RedeemPage() {
                   >
                     {/* Lock overlay for unaffordable rewards */}
                     {!canAfford && (
-                      <div className="absolute inset-0 bg-background/40 z-10 flex items-center justify-center">
+                      <div className="absolute inset-0 bg-background/40 z-10 flex items-center justify-center pointer-events-none">
                         <div className="absolute top-4 right-4 bg-background/90 backdrop-blur-sm p-2 rounded-full">
                           <Lock className="size-5 text-muted-foreground" />
                         </div>
