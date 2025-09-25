@@ -11,34 +11,66 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 
-export function LoginForm({
+export function SignupForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [name, setName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (password !== confirmPassword) {
+      alert("Passwords do not match");
+      return;
+    }
+
+    if (password.length < 6) {
+      alert("Password must be at least 6 characters long");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      const result = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          name,
+        }),
       });
 
-      if (result?.ok) {
-        router.push("/dashboard");
+      if (response.ok) {
+        // Auto-login after successful registration
+        const result = await signIn("credentials", {
+          email,
+          password,
+          redirect: false,
+        });
+
+        if (result?.ok) {
+          router.push("/dashboard");
+        } else {
+          alert("Registration successful! Please log in.");
+          router.push("/login");
+        }
       } else {
-        alert("Invalid credentials");
+        const error = await response.json();
+        alert(error.error || "Registration failed");
       }
     } catch (error) {
-      console.error("Login error:", error);
-      alert("An error occurred during login");
+      console.error("Signup error:", error);
+      alert("An error occurred during registration");
     } finally {
       setIsLoading(false);
     }
@@ -70,12 +102,28 @@ export function LoginForm({
 
               <div className="flex flex-col items-center text-center">
                 <h1 className="text-lg md:text-xl lg:text-2xl font-heading">
-                  YOUR REWARD AWAITS
+                  JOIN THE REWARDS PROGRAM
                 </h1>
                 <p className="text-muted-foreground text-balance text-xs md:text-sm">
-                  Log in, check points, redeem.
+                  Create an account to start earning points.
                 </p>
               </div>
+
+              <div className="grid gap-1.5 md:gap-2">
+                <Label htmlFor="name" className="text-xs md:text-sm">
+                  Full Name
+                </Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="Your full name"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="h-8 md:h-10"
+                />
+              </div>
+
               <div className="grid gap-1.5 md:gap-2">
                 <Label htmlFor="email" className="text-xs md:text-sm">
                   Email
@@ -90,39 +138,51 @@ export function LoginForm({
                   className="h-8 md:h-10"
                 />
               </div>
+
               <div className="grid gap-1.5 md:gap-2">
-                <div className="flex items-center">
-                  <Label htmlFor="password" className="text-xs md:text-sm">
-                    Password
-                  </Label>
-                  <a
-                    href="#"
-                    className="ml-auto text-xs underline-offset-2 hover:underline"
-                  >
-                    Forgot your password?
-                  </a>
-                </div>
+                <Label htmlFor="password" className="text-xs md:text-sm">
+                  Password
+                </Label>
                 <Input
                   id="password"
                   type="password"
                   required
+                  placeholder="At least 6 characters"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="h-8 md:h-10"
                 />
               </div>
+
+              <div className="grid gap-1.5 md:gap-2">
+                <Label htmlFor="confirmPassword" className="text-xs md:text-sm">
+                  Confirm Password
+                </Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  required
+                  placeholder="Confirm your password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="h-8 md:h-10"
+                />
+              </div>
+
               <Button
                 type="submit"
                 className="w-full h-8 md:h-10"
                 disabled={isLoading}
               >
-                {isLoading ? "LOGGING IN..." : "LOGIN"}
+                {isLoading ? "CREATING ACCOUNT..." : "SIGN UP"}
               </Button>
+
               <div className="after:border-border relative text-center text-xs after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
                 <span className="bg-card text-muted-foreground relative z-10 px-2">
                   Or continue with
                 </span>
               </div>
+
               <div className="grid grid-cols-2 gap-1.5 md:gap-3">
                 <Button
                   variant="outline"
@@ -140,7 +200,7 @@ export function LoginForm({
                       fill="currentColor"
                     />
                   </svg>
-                  <span className="sr-only">Login with Google</span>
+                  <span className="sr-only">Sign up with Google</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -158,18 +218,20 @@ export function LoginForm({
                       fill="currentColor"
                     />
                   </svg>
-                  <span className="sr-only">Login with Facebook</span>
+                  <span className="sr-only">Sign up with Facebook</span>
                 </Button>
               </div>
+
               <div className="text-center text-xs">
-                Don&apos;t have an account?{" "}
+                Already have an account?{" "}
                 <Link
-                  href="/signup"
+                  href="/login"
                   className="underline underline-offset-4 hover:text-primary"
                 >
-                  Sign up
+                  Log in
                 </Link>
               </div>
+
               <div className="text-center text-xs">
                 <Link
                   href="/privacy"
@@ -180,6 +242,7 @@ export function LoginForm({
               </div>
             </div>
           </form>
+
           <div className="bg-muted relative hidden md:block">
             <Image
               src="/Landing-Page-Bottle.png"
@@ -190,8 +253,9 @@ export function LoginForm({
           </div>
         </CardContent>
       </Card>
+
       <div className="text-muted-foreground text-center text-xs text-balance px-2">
-        By clicking continue, you agree to our{" "}
+        By creating an account, you agree to our{" "}
         <a href="#" className="underline underline-offset-4 hover:text-primary">
           Terms of Service
         </a>{" "}

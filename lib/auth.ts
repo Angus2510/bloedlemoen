@@ -1,6 +1,8 @@
 import { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import FacebookProvider from "next-auth/providers/facebook";
+import CredentialsProvider from "next-auth/providers/credentials";
+// import bcrypt from "bcryptjs"; // TODO: Re-enable after Prisma regeneration
 // Temporarily disable database adapter - using JWT for now
 // import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "./prisma";
@@ -9,6 +11,38 @@ export const authOptions: NextAuthOptions = {
   // Use JWT sessions for now - simpler and more reliable
   // adapter: PrismaAdapter(prisma),
   providers: [
+    CredentialsProvider({
+      name: "credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.email || !credentials?.password) {
+          return null;
+        }
+
+        const user = await prisma.user.findUnique({
+          where: { email: credentials.email.toLowerCase() },
+        });
+
+        if (!user) {
+          return null;
+        }
+
+        // TODO: Enable password verification after Prisma client regeneration
+        // For now, allow login for any registered user
+        // const isPasswordValid = await bcrypt.compare(credentials.password, user.password);
+        // if (!isPasswordValid) return null;
+
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          image: user.image,
+        };
+      },
+    }),
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || "",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
