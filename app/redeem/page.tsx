@@ -41,7 +41,7 @@ const rewards = [
     description:
       "Crafted to bring warmth and subtle dimension to your space. With gentle curves and a timeless silhouette, these holders fit effortlessly into any setting. Ideal for long lunches that turn into dinners, soft evenings or to simply enjoy the beauty of a well-placed flame. Whether holding a classic dinner candle or a soft tealight, each piece is made to adapt. Use them side by side or stack them for a bit of height to create a candlelit moment that feels considered and calm.",
     points: 200,
-    image: "/candle-holder-4.jpg", // Using logo as placeholder
+    image: "/candle-holder-4.jpeg", // Using logo as placeholder
     category: "Home Decor",
   },
   {
@@ -50,7 +50,7 @@ const rewards = [
     description:
       "Designed to complement the beauty of a classic Bloedlemoen G&T at golden hour. Each piece is thoughtfully cast in Jesmonite for a natural, stone-like feel, and finished with a subtle gloss to reflect just the right amount of light. Functional yet refined, these coasters are built to protect your surfaces with ease while adding a gentle pop of colour to your table. Whether you're gathering around the fire or setting the table for friends, they bring a calm, crafted elegance to every pour. Place your glass. Pause. Enjoy.",
     points: 250,
-    image: "/coasters-2.jpg", // Using logo as placeholder
+    image: "/coasters-2.jpeg", // Using logo as placeholder
     category: "Home Decor",
   },
   {
@@ -113,7 +113,7 @@ const rewards = [
     description:
       "For tables that tell stories. Beautifully handcrafted placemats designed to bring a touch of natural elegance to your table setting. Easygoing, unfussed and full of charm. Whether it's a midweek meal or a long lunch with friends, this is the kind of detail that draws people in without saying a word. Set the table. Pour the Bloedlemoen. Stay a while.",
     points: 300,
-    image: "/place-mats.jpg", // Using logo as placeholder
+    image: "/place-mats.jpeg", // Using logo as placeholder
     category: "Table Setting",
   },
   {
