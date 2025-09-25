@@ -68,7 +68,7 @@ const rewards = [
     description:
       "Designed to bring a warm, steady glow to your table as the light begins to fade. Whether it's sundowners on the patio or a long dinner that stretches long into the night, this classic set of dinner candles will set the tone with quiet elegance. Offering extended burn time for those special occasions.",
     points: 100,
-    image: "/Okra-2.jpg", // Using logo as placeholder
+    image: "/Okra-2.jpeg", // Using logo as placeholder
     category: "Candles",
   },
   {
@@ -77,7 +77,7 @@ const rewards = [
     description:
       "This practical candle offers long-lasting light. The kind that turns an ordinary evening into something golden. Pair its steady glow with the clink of ice, a splash of Bloedlemoen Gin and good company. Suddenly, time slows down, shadows dance and everything feels just right. Designed for life's quieter, finer moments.",
     points: 200,
-    image: "/Okra-4.jpg", // Using logo as placeholder
+    image: "/Okra-4.jpeg", // Using logo as placeholder
     category: "Candles",
   },
   {
@@ -95,7 +95,7 @@ const rewards = [
     description:
       "With its bold beaded form and warm, ambient glow, the Bead Pent Candle is designed to elevate your space. Sculptural and striking, it brings a sense of calm and quiet drama to any setting. Best enjoyed with a Bloedlemoen in hand and no real rush to be anywhere.",
     points: 150,
-    image: "/Okra-bead-2.jpg", // Using logo as placeholder
+    image: "/Okra-bead-2.jpeg", // Using logo as placeholder
     category: "Candles",
   },
   {
@@ -104,7 +104,7 @@ const rewards = [
     description:
       "This set of mini tumblers is the kind you reach for when the Bloedlemoen comes out. Clean lines and tough tempered glass make them a practical favourite. Unfussy, durable and ready for anything. From relaxed drinks on the patio to Bloedlemoen cocktails shared across a long table, these are the glasses that keep the good times going. Just add ice. A splash of Bloedlemoen. And whoever makes you laugh the loudest.",
     points: 250,
-    image: "/tumblers.jpeg", // Using logo as placeholder
+    image: "/tumblers.jpeg",
     category: "Barware",
   },
   {
