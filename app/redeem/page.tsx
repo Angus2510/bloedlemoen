@@ -32,7 +32,7 @@ const rewards = [
     description:
       "Crafted to bring warmth and subtle dimension to your space. With gentle curves and a timeless silhouette, these holders fit effortlessly into any setting. Ideal for long lunches that turn into dinners, soft evenings or to simply enjoy the beauty of a well-placed flame. Whether holding a classic dinner candle or a soft tealight, each piece is made to adapt. Use them side by side or stack them for a bit of height to create a candlelit moment that feels considered and calm.",
     points: 100,
-    image: "/candle-holder-2.jpg", // Using logo as placeholder
+    image: "/candle-holder-2.jpeg", // Using logo as placeholder
     category: "Home Decor",
   },
   {
@@ -59,7 +59,7 @@ const rewards = [
     description:
       "Designed to complement the beauty of a classic Bloedlemoen G&T at golden hour. Each piece is thoughtfully cast in Jesmonite for a natural, stone-like feel, and finished with a subtle gloss to reflect just the right amount of light. Functional yet refined, these coasters are built to protect your surfaces with ease while adding a gentle pop of colour to your table. Whether you're gathering around the fire or setting the table for friends, they bring a calm, crafted elegance to every pour. Place your glass. Pause. Enjoy.",
     points: 150,
-    image: "/coasters-4.jpg", // Using logo as placeholder
+    image: "/coasters-4.jpeg", // Using logo as placeholder
     category: "Home Decor",
   },
   {
@@ -122,7 +122,7 @@ const rewards = [
     description:
       "Designed to do more than catch a drip, they complete the moment. Neatly placed under a freshly mixed Bloedlemoen cocktail, adding layers of texture, colour and glam. Woven with care and styled to suit both casual gatherings and more refined affairs, these napkins bring a gentle elegance to every glass.",
     points: 200,
-    image: "/napkin-2.jpg", // Using logo as placeholder
+    image: "/dinner-napkin-2.jpeg", // Using logo as placeholder
     category: "Table Setting",
   },
   {
@@ -131,7 +131,7 @@ const rewards = [
     description:
       "These traditionally woven dinner napkins bring a relaxed, effortless and refined feel to any gathering. Whether it's a slow afternoon lunch or an evening of shared plates with a Bloedlemoen cocktail in hand, it'll add just the right touch of texture and charm.",
     points: 250,
-    image: "/napkin-2.jpg", // Using logo as placeholder
+    image: "/cocktail-napkin.jpeg", // Using logo as placeholder
     category: "Table Setting",
   },
 ];
