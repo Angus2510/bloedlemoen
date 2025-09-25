@@ -104,7 +104,7 @@ const rewards = [
     description:
       "This set of mini tumblers is the kind you reach for when the Bloedlemoen comes out. Clean lines and tough tempered glass make them a practical favourite. Unfussy, durable and ready for anything. From relaxed drinks on the patio to Bloedlemoen cocktails shared across a long table, these are the glasses that keep the good times going. Just add ice. A splash of Bloedlemoen. And whoever makes you laugh the loudest.",
     points: 250,
-    image: "/tumblers.jpg", // Using logo as placeholder
+    image: "/tumblers.jpeg", // Using logo as placeholder
     category: "Barware",
   },
   {
