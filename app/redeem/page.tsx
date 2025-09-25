@@ -86,7 +86,7 @@ const rewards = [
     description:
       "With bold, gear inspired ridges and a clean tapered form, this large sculptural candle is made to be noticed and admired. It's more than just a source of light, it's an atmosphere setter, a conversation starter and the perfect companion to a well poured Bloedlemoen G&T. Designed for slow evenings and beautiful settings.",
     points: 150,
-    image: "/Okra-1-gear.jpg", // Using logo as placeholder
+    image: "/Okra-1-gear.jpeg", // Using logo as placeholder
     category: "Home Accessories",
   },
   {
