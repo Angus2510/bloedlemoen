@@ -417,7 +417,10 @@ export default function DashboardPage() {
 
     // Try to find any traces of product names in the corrupted text
     const productHints = {
-      bloedlemoen: /bloedl?e?m?o?e?n?|bl.*ed.*lem|amber|750ml/i.test(fullText),
+      bloedlemoen:
+        /bloedl?e?m?o?e?n?|bl.*ed.*lem|amber|750ml|bli.*em|b.*l.*em.*n|b.*em.*n/i.test(
+          fullText
+        ),
       feverTree: /fever.*tree|indian.*tonic|tonic.*water|pack.*4/i.test(
         fullText
       ),
@@ -506,7 +509,9 @@ export default function DashboardPage() {
       }
 
       // BLOEDLEMOEN DETECTION (100 points per bottle) - supports multiple bottles per slip
-      if (/(b[\s\/\-\.]?lemoen|bloedlemoen)/i.test(cleanLine)) {
+      if (
+        /(b[\s\/\-\.]?lemoen|bloedlemoen|b.*l.*em.*n|bli.*em)/i.test(cleanLine)
+      ) {
         console.log(`🍾 BLOEDLEMOEN DETECTED: "${line}"`);
 
         // Enhanced quantity detection patterns for B/LEMOEN variations

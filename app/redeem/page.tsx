@@ -415,13 +415,13 @@ export default function RedeemPage() {
                       </div>
                     )}
 
-                    {/* Reward Image - Fixed height */}
-                    <div className="h-48 relative bg-muted flex-shrink-0">
+                    {/* Reward Image - Square aspect ratio */}
+                    <div className="aspect-square relative bg-muted flex-shrink-0">
                       <Image
                         src={reward.image}
                         alt={reward.name}
                         fill
-                        className="object-cover"
+                        className="object-contain"
                       />
                     </div>
 

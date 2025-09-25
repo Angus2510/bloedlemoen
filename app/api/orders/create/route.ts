@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
+import sendEmailNotification from "@/lib/email";
 
 interface CheckoutItem {
   id: number;
@@ -138,6 +139,94 @@ export async function POST(
         };
       }
     );
+
+    // Send confirmation email to user
+    const userEmail = deliveryInfo.email || user.email;
+    if (userEmail) {
+      const userEmailHtml = `
+        <h1>Your Bloedlemoen Rewards Order Confirmation</h1>
+        <p>Thank you for redeeming your points! Your order has been placed successfully.</p>
+        <h2>Order Details</h2>
+        <p><strong>Order ID:</strong> ${result.orderId}</p>
+        <h2>Items Received:</h2>
+        <ul>
+          ${items
+            .map(
+              (item) =>
+                `<li>${item.name} - Quantity: ${item.quantity} (${
+                  item.points * item.quantity
+                } points)</li>`
+            )
+            .join("")}
+        </ul>
+        <p><strong>Total Points Used:</strong> ${totalPoints}</p>
+        <h2>Delivery Information:</h2>
+        <p><strong>Name:</strong> ${deliveryInfo.name}</p>
+        <p><strong>Email:</strong> ${deliveryInfo.email || "N/A"}</p>
+        <p><strong>Phone:</strong> ${deliveryInfo.phone || "N/A"}</p>
+        <p><strong>Address:</strong> ${deliveryInfo.addressLine1}${
+        deliveryInfo.addressLine2 ? ", " + deliveryInfo.addressLine2 : ""
+      }</p>
+        <p><strong>City:</strong> ${deliveryInfo.city}</p>
+        <p><strong>Province:</strong> ${deliveryInfo.province}</p>
+        <p><strong>Postal Code:</strong> ${deliveryInfo.postalCode}</p>
+        <p><strong>Country:</strong> ${deliveryInfo.country}</p>
+        <p>Your rewards will be delivered within 7-10 business days.</p>
+        <p>If you have any questions, please contact us at info@cutlerdrinks.co.za</p>
+      `;
+      try {
+        await sendEmailNotification(
+          userEmail,
+          "Your Bloedlemoen Rewards Order Confirmation",
+          userEmailHtml
+        );
+      } catch (emailError) {
+        console.error("Failed to send user confirmation email:", emailError);
+      }
+    }
+
+    // Send notification email to admin
+    const adminEmailHtml = `
+      <h1>New Order Received</h1>
+      <h2>User Information:</h2>
+      <p><strong>Name:</strong> ${user.name || "N/A"}</p>
+      <p><strong>Email:</strong> ${user.email}</p>
+      <p><strong>Phone:</strong> ${deliveryInfo.phone || "N/A"}</p>
+      <h2>Delivery Information:</h2>
+      <p><strong>Name:</strong> ${deliveryInfo.name}</p>
+      <p><strong>Email:</strong> ${deliveryInfo.email || "N/A"}</p>
+      <p><strong>Phone:</strong> ${deliveryInfo.phone || "N/A"}</p>
+      <p><strong>Address:</strong> ${deliveryInfo.addressLine1}${
+      deliveryInfo.addressLine2 ? ", " + deliveryInfo.addressLine2 : ""
+    }</p>
+      <p><strong>City:</strong> ${deliveryInfo.city}</p>
+      <p><strong>Province:</strong> ${deliveryInfo.province}</p>
+      <p><strong>Postal Code:</strong> ${deliveryInfo.postalCode}</p>
+      <p><strong>Country:</strong> ${deliveryInfo.country}</p>
+      <h2>Order Details:</h2>
+      <p><strong>Order ID:</strong> ${result.orderId}</p>
+      <ul>
+        ${items
+          .map(
+            (item) =>
+              `<li>${item.name} - Quantity: ${item.quantity} (${
+                item.points * item.quantity
+              } points)</li>`
+          )
+          .join("")}
+      </ul>
+      <p><strong>Total Points Used:</strong> ${totalPoints}</p>
+      <p><strong>Remaining Points:</strong> ${result.updatedUser.points}</p>
+    `;
+    try {
+      await sendEmailNotification(
+        "info@cutlerdrinks.co.za",
+        `New Order from ${deliveryInfo.name}`,
+        adminEmailHtml
+      );
+    } catch (emailError) {
+      console.error("Failed to send admin notification email:", emailError);
+    }
 
     return NextResponse.json({
       success: true,
