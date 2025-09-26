@@ -177,7 +177,7 @@ export async function POST(
       try {
         await sendEmailNotification(
           userEmail,
-          "Your Bloedlemoen Rewards Order Confirmation",
+          "Your #FestiveMoments with Bloedlemoen Gin Order Confirmation",
           userEmailHtml
         );
       } catch (emailError) {
