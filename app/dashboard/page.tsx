@@ -801,8 +801,8 @@ export default function DashboardPage() {
                 UPLOAD RECEIPT
               </CardTitle>
               <CardDescription className="text-sm">
-                Upload receipts for Bloedlemoen Gin (100 pts/bottle) or Fever
-                Tree Tonic packs (50 pts/pack)
+                Upload clear photos of receipts taken from above for Bloedlemoen
+                Gin (100 pts/bottle) or Fever Tree Tonic packs (50 pts/pack)
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 md:space-y-4">
