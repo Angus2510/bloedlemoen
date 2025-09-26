@@ -13,6 +13,15 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Camera, LogOut, Upload } from "lucide-react";
 import Image from "next/image";
 import Tesseract from "tesseract.js";
@@ -58,6 +67,15 @@ export default function DashboardPage() {
       date: string;
     }>
   >([]);
+  const [alertDialog, setAlertDialog] = useState<{
+    open: boolean;
+    title: string;
+    description: string;
+  }>({
+    open: false,
+    title: "",
+    description: "",
+  });
 
   // Fetch user data on component mount
   useEffect(() => {
@@ -317,26 +335,35 @@ export default function DashboardPage() {
 
         if (dbResult) {
           // Clean, simple success message showing only what user needs
-          let message = `🎉 Success! Purchase Verified\n\n`;
+          let message = `Success! Purchase Verified\n\n`;
 
           if (receiptInfo.totalBottles > 0) {
-            message += `🍾 Bloedlemoen Bottles: ${receiptInfo.totalBottles}\n`;
+            message += `Bloedlemoen Bottles: ${receiptInfo.totalBottles}\n`;
           }
 
           if (receiptInfo.totalFeverTreePacks > 0) {
-            message += `🥤 Fever Tree Packs: ${receiptInfo.totalFeverTreePacks}\n`;
+            message += `Fever Tree Packs: ${receiptInfo.totalFeverTreePacks}\n`;
           }
 
-          message += `⭐ Points Earned: ${pointsEarned}\n`;
-          message += `💰 Your Total Points: ${dbResult.newPointsBalance}`;
+          message += `Points Earned: ${pointsEarned}\n`;
+          message += `Your Total Points: ${dbResult.newPointsBalance}`;
 
-          alert(message);
+          setAlertDialog({
+            open: true,
+            title: "Success!",
+            description: message,
+          });
         } else {
-          alert("❌ Receipt could not be saved to database. Please try again.");
+          setAlertDialog({
+            open: true,
+            title: "Error",
+            description:
+              "Receipt could not be saved to database. Please try again.",
+          });
         }
       } else {
         let errorMessage =
-          "❌ Could not detect qualifying products in this receipt.\n\n";
+          "Could not detect qualifying products in this receipt.\n\n";
 
         // Check if this looks like a corrupted PDF case
         const textHasGGG = extractedText.toLowerCase().includes("ggg ggg");
@@ -344,15 +371,14 @@ export default function DashboardPage() {
 
         if (textHasGGG && hasOrderNumber) {
           errorMessage =
-            "❌ PDF corrupted by email-to-PDF conversion detected!\n\n";
+            "PDF corrupted by email-to-PDF conversion detected!\n\n";
           errorMessage +=
-            "🔍 We can see this is Order #1933 but the product details are corrupted.\n\n";
-          errorMessage += "✅ EASY FIX:\n";
-          errorMessage += "1. 📧 Go back to the original email\n";
-          errorMessage += "2. 📋 Copy the receipt text (Select All + Copy)\n";
-          errorMessage +=
-            "3. 📝 Paste into Notepad and save as 'receipt.txt'\n";
-          errorMessage += "4. 📤 Upload the .txt file instead\n\n";
+            "We can see this is Order #1933 but the product details are corrupted.\n\n";
+          errorMessage += "EASY FIX:\n";
+          errorMessage += "1. Go back to the original email\n";
+          errorMessage += "2. Copy the receipt text (Select All + Copy)\n";
+          errorMessage += "3. Paste into Notepad and save as 'receipt.txt'\n";
+          errorMessage += "4. Upload the .txt file instead\n\n";
           errorMessage +=
             "This will detect: Bloedlemoen Amber (100pts) + Bloedlemoen Original + FREE Fever Tree (150pts) = 250 total points!";
         } else {
@@ -369,13 +395,20 @@ export default function DashboardPage() {
           }
         }
 
-        alert(errorMessage);
+        setAlertDialog({
+          open: true,
+          title: "Invalid Receipt",
+          description: errorMessage,
+        });
       }
     } catch (error) {
       console.error("OCR Error:", error);
-      alert(
-        "Error processing file. Please try again with a clear image or PDF."
-      );
+      setAlertDialog({
+        open: true,
+        title: "Processing Error",
+        description:
+          "Error processing file. Please try again with a clear image or PDF.",
+      });
     } finally {
       setUploading(false);
     }
@@ -515,9 +548,29 @@ export default function DashboardPage() {
       }
 
       // BLOEDLEMOEN DETECTION (100 points per bottle) - supports multiple bottles per slip
-      if (
-        /(b[\s\/\-\.]?lemoen|bloedlemoen|b.*l.*em.*n|bli.*em)/i.test(cleanLine)
-      ) {
+      // Enhanced patterns to catch OCR errors, variations, and close spellings
+      const bloedlemoenPatterns = [
+        /bloedlemoen/i, // "bloedlemoen" (exact)
+        /bloedlemoe[!.]*/i, // "bloedlemoe", "bloedlemoe!", "bloedlemoe."
+        /bloedlemon/i, // "bloedlemon" (OCR n->n confusion)
+        /bloed.*lemoen/i, // "bloed lemoen", "bloed-lemoen"
+        /bloed.*lemoe/i, // "bloed lemoe", "bloed-lemoe"
+        /b[\s\/\-\.]*lemoen/i, // "b/lemoen", "b lemoen", "b.lemoen"
+        /b[\s\/\-\.]*lemoe/i, // "b/lemoe", "b lemoe", "b.lemoe"
+        /b.*l.*em.*[oe]n/i, // flexible OCR corruption patterns
+        /bli.*em/i, // partial matches
+        // OCR corruption patterns
+        /bl.*d.*l.*m/i, // "bldlm", "bl dl m"
+        /bloedl/i, // truncated versions
+        /lemoen/i, // just "lemoen" (if preceded by bloed-related)
+        /lemoe/i, // just "lemoe" (if preceded by bloed-related)
+      ];
+
+      const hasBloedlemoen = bloedlemoenPatterns.some((pattern) =>
+        pattern.test(cleanLine)
+      );
+
+      if (hasBloedlemoen) {
         console.log(`🍾 BLOEDLEMOEN DETECTED: "${line}"`);
 
         // Block 50ml bottles - only allow larger sizes
@@ -527,16 +580,16 @@ export default function DashboardPage() {
           continue;
         }
 
-        // Enhanced quantity detection patterns for B/LEMOEN variations
+        // Enhanced quantity detection patterns for BLOEDLEMOEN variations
         const quantityPatterns = [
-          /^(\d+)\s/, // "2 B/LEMOEN..." (number at start)
+          /^(\d+)\s/, // "2 BLOEDLEMOEN..." (number at start)
           /qty\s*(\d+)/i, // "Qty 2" or "QTY: 2"
           /quantity\s*(\d+)/i, // "Quantity 2"
-          /(\d+)\s*x\s*(?:b[\s\/\-\.]?lemoen|bloedlemoen)/i, // "2x B/LEMOEN" or "2 x Bloedlemoen"
-          /(\d+)\s+(?:b[\s\/\-\.]?lemoen|bloedlemoen)/i, // "2 B/LEMOEN"
-          /(?:b[\s\/\-\.]?lemoen|bloedlemoen).*x\s*(\d+)/i, // "B/LEMOEN x2"
-          /(\d+)\s*bottles?\s*(?:b[\s\/\-\.]?lemoen|bloedlemoen)/i, // "2 bottles B/LEMOEN"
-          /(?:b[\s\/\-\.]?lemoen|bloedlemoen).*\s*(\d+)\s*bottles?/i, // "B/LEMOEN 2 bottles"
+          /(\d+)\s*x\s*(?:bloedlemoen|bloedlemoe|b[\s\/\-\.]*lemoen)/i, // "2x BLOEDLEMOEN" or "2 x Bloedlemoen"
+          /(\d+)\s+(?:bloedlemoen|bloedlemoe|b[\s\/\-\.]*lemoen)/i, // "2 BLOEDLEMOEN"
+          /(?:bloedlemoen|bloedlemoe|b[\s\/\-\.]*lemoen).*x\s*(\d+)/i, // "BLOEDLEMOEN x2"
+          /(\d+)\s*bottles?\s*(?:bloedlemoen|bloedlemoe|b[\s\/\-\.]*lemoen)/i, // "2 bottles BLOEDLEMOEN"
+          /(?:bloedlemoen|bloedlemoe|b[\s\/\-\.]*lemoen).*\s*(\d+)\s*bottles?/i, // "BLOEDLEMOEN 2 bottles"
         ];
 
         let quantity = 1; // Default to 1
@@ -929,6 +982,23 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </main>
+
+      <AlertDialog
+        open={alertDialog.open}
+        onOpenChange={(open) => setAlertDialog((prev) => ({ ...prev, open }))}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{alertDialog.title}</AlertDialogTitle>
+            <AlertDialogDescription className="whitespace-pre-line">
+              {alertDialog.description}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction>OK</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
