@@ -88,37 +88,36 @@ export async function POST(
     }
 
     // Create receipt hash to check for duplicates
-    // const receiptHash = createReceiptHash(ocrText, totalAmount); // TODO: Re-enable after Prisma regeneration
+    const receiptHash = createReceiptHash(ocrText, totalAmount);
 
-    // TODO: Re-enable duplicate check after regenerating Prisma client
     // Check if this receipt hash already exists for any user
-    // const existingReceipt = await prisma.receipt.findFirst({
-    //   where: {
-    //     receiptHash: receiptHash,
-    //   },
-    //   include: {
-    //     user: {
-    //       select: {
-    //         email: true,
-    //         name: true,
-    //       },
-    //     },
-    //   },
-    // });
+    const existingReceipt = await prisma.receipt.findFirst({
+      where: {
+        receiptHash: receiptHash,
+      },
+      include: {
+        user: {
+          select: {
+            email: true,
+            name: true,
+          },
+        },
+      },
+    });
 
-    // if (existingReceipt) {
-    //   // Receipt already exists - return error with details
-    //   const isOwnReceipt = existingReceipt.userId === user.id;
+    if (existingReceipt) {
+      // Receipt already exists - return error with details
+      const isOwnReceipt = existingReceipt.userId === user.id;
 
-    //   return NextResponse.json(
-    //     {
-    //       error: isOwnReceipt
-    //         ? "You have already uploaded this receipt. Each receipt can only be submitted once."
-    //         : "This receipt has already been submitted by another user. Each receipt can only be used once across all accounts.",
-    //     },
-    //     { status: 409 } // Conflict status code
-    //   );
-    // }
+      return NextResponse.json(
+        {
+          error: isOwnReceipt
+            ? "You have already uploaded this receipt. Each receipt can only be submitted once."
+            : "This receipt has already been submitted by another user. Each receipt can only be used once across all accounts.",
+        },
+        { status: 409 } // Conflict status code
+      );
+    }
 
     // Convert totalAmount from string to number
     const totalAmountNumber = totalAmount ? parseFloat(totalAmount) : null;
@@ -129,7 +128,7 @@ export async function POST(
         userId: user.id,
         imagePath: "", // No image saved, just empty string
         ocrText: ocrText,
-        // receiptHash: receiptHash, // TODO: Re-enable after Prisma regeneration
+        receiptHash: receiptHash,
         storeName: storeName || null,
         totalAmount: totalAmountNumber,
         detectedItems: detectedItems || [],

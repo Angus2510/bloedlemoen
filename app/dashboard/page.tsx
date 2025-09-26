@@ -119,6 +119,12 @@ export default function DashboardPage() {
       } else {
         const errorData = await response.json();
         console.error("Failed to save receipt:", errorData);
+
+        // Handle duplicate receipt error specifically
+        if (response.status === 409) {
+          throw new Error(errorData.error);
+        }
+
         return null;
       }
     } catch (error) {
@@ -513,6 +519,13 @@ export default function DashboardPage() {
         /(b[\s\/\-\.]?lemoen|bloedlemoen|b.*l.*em.*n|bli.*em)/i.test(cleanLine)
       ) {
         console.log(`🍾 BLOEDLEMOEN DETECTED: "${line}"`);
+
+        // Block 50ml bottles - only allow larger sizes
+        if (/\b50\s*ml\b/i.test(cleanLine)) {
+          console.log(`❌ BLOCKED: 50ml bottle detected - skipping`);
+          processedLines.add(cleanLine);
+          continue;
+        }
 
         // Enhanced quantity detection patterns for B/LEMOEN variations
         const quantityPatterns = [
