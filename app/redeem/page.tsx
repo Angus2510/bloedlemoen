@@ -59,7 +59,7 @@ const rewards = [
     description:
       "Designed to complement the beauty of a classic Bloedlemoen G&T at golden hour. Each piece is thoughtfully cast in Jesmonite for a natural, stone-like feel, and finished with a subtle gloss to reflect just the right amount of light. Functional yet refined, these coasters are built to protect your surfaces with ease while adding a gentle pop of colour to your table. Whether you're gathering around the fire or setting the table for friends, they bring a calm, crafted elegance to every pour. Place your glass. Pause. Enjoy.",
     points: 150,
-    image: "/coasters-4.jpeg",
+    image: "/coaster-4.jpeg",
     category: "Home Decor",
   },
   {
