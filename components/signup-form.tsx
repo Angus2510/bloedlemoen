@@ -245,7 +245,7 @@ export function SignupForm({
 
           <div className="bg-muted relative hidden md:block">
             <Image
-              src="/login-signup.jpeg"
+              src="/login-signup.jpg"
               alt="Bloedlemoen Gin"
               fill
               className="object-cover dark:brightness-[0.2] dark:grayscale"
