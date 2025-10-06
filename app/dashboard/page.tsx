@@ -868,7 +868,17 @@ export default function DashboardPage() {
               </CardTitle>
               <CardDescription className="text-sm">
                 Upload clear photos of receipts taken from above for Bloedlemoen
-                Gin (100 pts/bottle) or Fever Tree Tonic packs (50 pts/pack)
+                Gin (100 pts/bottle) or Fever Tree Tonic packs (50 pts/pack). If
+                the upload feature is not working, you may also email us your
+                receipt image by{" "}
+                <a
+                  href="mailto:anguscarey1@gmail.com"
+                  className="text-primary underline"
+                >
+                  clicking here
+                </a>
+                . Please allow 24 hours for points to reflect if deemed
+                acceptable.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 md:space-y-4">
