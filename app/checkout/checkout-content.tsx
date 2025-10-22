@@ -162,11 +162,8 @@ export default function CheckoutContent() {
       });
 
       if (response.ok) {
-        const result: CreateOrderResponse = await response.json();
-        alert(
-          `🎉 Order confirmed! Order ID: ${result.orderId}\n\nYour rewards will be delivered within 7-10 business days.\n\nRemaining Points: ${result.newPointsBalance}`
-        );
-        router.push("/dashboard");
+        // Redirect to confirmation page instead of showing alert
+        router.push("/checkout/confirmation");
       } else {
         const errorResult: ErrorResponse = await response.json();
         alert(`Order failed: ${errorResult.error}`);
