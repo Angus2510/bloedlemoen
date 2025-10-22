@@ -30,9 +30,9 @@ export default function CheckoutConfirmationPage() {
           <Card>
             <CardHeader className="text-center pb-6">
               <div className="flex justify-center mb-4">
-                <CheckCircle className="size-16 text-orange-600" />
+                <CheckCircle className="size-16 text-[#E87722]" />
               </div>
-              <CardTitle className="text-2xl md:text-3xl font-heading font-normal text-orange-600">
+              <CardTitle className="text-2xl md:text-3xl font-heading font-normal text-[#E87722]">
                 Thank You for Redeeming Your Points!
               </CardTitle>
             </CardHeader>
