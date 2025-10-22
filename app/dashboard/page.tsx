@@ -363,37 +363,13 @@ export default function DashboardPage() {
         }
       } else {
         let errorMessage =
-          "Could not detect qualifying products in this receipt.\n\n";
-
-        // Check if this looks like a corrupted PDF case
-        const textHasGGG = extractedText.toLowerCase().includes("ggg ggg");
-        const hasOrderNumber = /order.*#?\s*1933/i.test(extractedText);
-
-        if (textHasGGG && hasOrderNumber) {
-          errorMessage =
-            "PDF corrupted by email-to-PDF conversion detected!\n\n";
-          errorMessage +=
-            "We can see this is Order #1933 but the product details are corrupted.\n\n";
-          errorMessage += "EASY FIX:\n";
-          errorMessage += "1. Go back to the original email\n";
-          errorMessage += "2. Copy the receipt text (Select All + Copy)\n";
-          errorMessage += "3. Paste into Notepad and save as 'receipt.txt'\n";
-          errorMessage += "4. Upload the .txt file instead\n\n";
-          errorMessage +=
-            "This will detect: Bloedlemoen Amber (100pts) + Bloedlemoen Original + FREE Fever Tree (150pts) = 250 total points!";
-        } else {
-          errorMessage += "Please ensure your receipt shows:\n";
-          errorMessage += "✓ 'Bloedlemoen Gin' (100 points per bottle)\n";
-          errorMessage +=
-            "✓ 'Fever Tree Tonic' 4-pack or 8-pack (50 points each)\n";
-          errorMessage += "✓ Clear store name\n\n";
-
-          if (receiptInfo.bloedlemoenProducts.length === 0) {
-            errorMessage += "No qualifying products detected in this receipt.";
-          } else {
-            errorMessage += `Found ${receiptInfo.bloedlemoenProducts.length} potential product(s) but couldn't verify them.`;
-          }
-        }
+          "Thank you for uploading your receipt. One of the following things could happen:\n\n";
+        errorMessage +=
+          "1) Your receipt doesn't have the participating products listed clearly on it (Bloedlemoen Gin or Fever-tree Tonic) - if this is the case please reach out to us @ info@bloedlemoengin.com\n\n";
+        errorMessage +=
+          "2) Your receipt has been uploaded twice or more times\n\n";
+        errorMessage +=
+          "3) Your photo or the scan of the receipt isn't clear so you may need to try again";
 
         setAlertDialog({
           open: true,
@@ -872,7 +848,7 @@ export default function DashboardPage() {
                 the upload feature is not working, you may also email us your
                 receipt image by{" "}
                 <a
-                  href="mailto:anguscarey1@gmail.com"
+                  href="mailto:info@bloedlemoengin.com"
                   className="text-primary underline"
                 >
                   clicking here
