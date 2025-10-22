@@ -66,15 +66,16 @@ export default function CheckoutConfirmationPage() {
                 purchased and your gift(s) together but there is a chance they
                 could arrive separately (yes-yes, we know, the AI era is amazing
                 but some systems still like an analogue approach and best left
-                to humans to manage - don't worry we've got the best ones
-                working on these).
+                to humans to manage - don&apos;t worry we&apos;ve got the best
+                ones working on these).
               </p>
 
               <p>
                 Lastly, all this means that you stand a real chance of winning
-                one of 5 beautiful sets from Le Creuset so don't disappear and
-                make sure you supplied us with your correct contact details - if
-                you happen to win these are the ones we'll use to contact you.
+                one of 5 beautiful sets from Le Creuset so don&apos;t disappear
+                and make sure you supplied us with your correct contact details
+                - if you happen to win these are the ones we&apos;ll use to
+                contact you.
               </p>
 
               <p>
