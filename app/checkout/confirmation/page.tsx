@@ -38,9 +38,9 @@ export default function CheckoutConfirmationPage() {
             </CardHeader>
             <CardContent className="space-y-6 text-sm md:text-base leading-relaxed">
               <p>
-                Your Festive parcel is being packed. We aim to dispatch these
-                gifts once a week so you can expect yours to arrive within 7
-                working days - if you think yours is delayed please reach out to
+                Your Festive parcel is being packed. What&apos;s next? We run
+                dispatches once a week so you can expect yours to arrive within
+                7 working days - if you think it is delayed, please reach out to
                 us at{" "}
                 <a
                   href="mailto:info@bloedlemoengin.com"
@@ -48,38 +48,38 @@ export default function CheckoutConfirmationPage() {
                 >
                   info@bloedlemoengin.com
                 </a>
+                .
               </p>
 
               <p>
                 If you collected and redeemed your points by uploading a
-                physical slip from a liquor store you will receive an email from
-                us confirming we received your gift order and you can just then
-                sit back and wait for it to arrive - we use Courier Guy to
-                deliver them so you will hear from them as they get on the road.
+                physical slip from a liquor store, you will receive a
+                confirmation email from us and can then expect for the gift to
+                arrive as per the above timelines - we use Courier Guy for
+                deliveries, so you will hear from them as they get on the road.
               </p>
 
               <p>
-                If you shopped on Bloedlemoen Gin web-site and redeemed your
-                points straight away you can expect 2 emails from us - one
+                If you shopped on Bloedlemoen Gin website and redeemed your
+                points straight away, you can expect 2 emails from us - one
                 confirming your product purchase and another one - your gift
-                selection. We will do our best to dispatch your products
-                purchased and your gift(s) together but there is a chance they
-                could arrive separately (yes-yes, we know, the AI era is amazing
-                but some systems still like an analogue approach and best left
-                to humans to manage - don&apos;t worry we&apos;ve got the best
-                ones working on these).
+                selection. We will do our best to dispatch all of it together,
+                but there is a chance that your purchased products and redeemed
+                gifts could arrive separately (yes-yes, we know, the AI era is
+                amazing but some systems still like an analogue approach and
+                best left to humans to manage).
               </p>
 
               <p>
                 Lastly, all this means that you stand a real chance of winning
                 one of 5 beautiful sets from Le Creuset so don&apos;t disappear
-                and make sure you supplied us with your correct contact details
-                - if you happen to win these are the ones we&apos;ll use to
+                and make sure you supplied us with correct contact details - if
+                you happen to win, these will be the ones we&apos;ll use to
                 contact you.
               </p>
 
               <p>
-                Of course, if at any point you have any questions please do not
+                Of course, if at any point you have any questions, please do not
                 hesitate to reach out at{" "}
                 <a
                   href="mailto:info@bloedlemoengin.com"
