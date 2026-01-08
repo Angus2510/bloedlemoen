@@ -182,7 +182,7 @@ export function LoginForm({
           </form>
           <div className="bg-muted relative hidden md:block">
             <Image
-              src="/login-signup.jpg"
+              src="/Login-Screen.jpg"
               alt="Bloedlemoen Gin"
               fill
               className="object-cover dark:brightness-[0.2] dark:grayscale"
